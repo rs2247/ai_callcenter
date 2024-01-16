@@ -1,9 +1,10 @@
+import os
 from elevenlabs import Voice, VoiceSettings, generate,play, stream
 from elevenlabs import set_api_key
 from openai import OpenAI
 import speech_recognition as sr
 
-client = OpenAI(api_key="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")
+client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
 
 
 set_api_key("aece25f51c8252ea4541f2b1604cac3d")
