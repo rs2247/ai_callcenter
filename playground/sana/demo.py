@@ -145,6 +145,8 @@ while True:
     # )
 
     #STREAMED GPT
+    # WARNING! For this to work, you need to change something in the elevenlabs lib and switch to an elevenlabs paid plan
+    # See this thread https://github.com/elevenlabs/elevenlabs-python/issues/136
     audio_stream = generate(
         text=gpt_generator(waiter_input),
         model='eleven_multilingual_v1',
