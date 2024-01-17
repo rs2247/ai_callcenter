@@ -13,7 +13,7 @@ client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
 elevenlabs.set_api_key("aece25f51c8252ea4541f2b1604cac3d")
 
 
-model, answer, history = faster_whisper.WhisperModel(model_size_or_path="tiny", device='cuda' if torch.cuda.is_available() else 'cpu'), "", []
+model, answer, history = faster_whisper.WhisperModel(model_size_or_path="small", device='cuda' if torch.cuda.is_available() else 'cpu', cpu_threads = 8), "", []
 
 
 def get_levels(data, long_term_noise_level, current_noise_level):
@@ -69,7 +69,7 @@ while True:
         print("Using Whisper")
         print(select_whisper)
         audio_file= open("voice_record.wav", "rb")
-        user_text = client.audio.transcriptions.create(model="whisper-1", file=audio_file,response_format="text")
+        user_text = client.audio.transcriptions.create(model="whisper-1", file=audio_file,response_format="text", language='pt')
     select_whisper = not select_whisper
 
 

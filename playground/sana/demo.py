@@ -80,7 +80,7 @@ while True:
 
 
 
-    #New AAD and STT
+    #New ASR and STT
     audio = pyaudio.PyAudio()
     stream = audio.open(rate=16000, format=pyaudio.paInt16, channels=1, input=True, frames_per_buffer=512)
     audio_buffer = collections.deque(maxlen=int((16000 // 512) * 0.5))
@@ -112,7 +112,7 @@ while True:
     
     tic = time.perf_counter()        
     audio_file= open("voice_record.wav", "rb")    
-    waiter_input = client.audio.transcriptions.create(model="whisper-1", file=audio_file,response_format="text")
+    waiter_input = client.audio.transcriptions.create(model="whisper-1", file=audio_file,response_format="text", language='pt')
     toc = time.perf_counter()
     times_whisper.append(toc - tic)
     print(f"Delta_t whisper {times_whisper[-1]}")
