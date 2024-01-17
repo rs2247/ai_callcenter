@@ -1,6 +1,8 @@
-# A ideia desse teste é ficar repeting a mesma frase 'How are you' múltiplas vezes. Uma vez ele faz o TTS com o FastWhisper e outra com o Whisper
-# Resultado: FastWhisper tem uma latência de ~0.5s enquanto o Whisper entrega um resultado perto de ~1s. Portanto é quase o dobro mais rápido
-# Porém, o FastWhisper ainda suporta apenas inglês
+# A ideia desse teste é ficar repeting a mesma frase 'How are you' múltiplas vezes. Uma vez ele faz o TTS com o Faster Whisper e outra com o Whisper
+# Resultado: FastWhisper tem uma latência de ~0.5s enquanto o Whisper entrega um resultado perto de ~1s nos modelos tiny. 
+# No modelo tiny.en a performance de entendimento foi boa, mas no modelo multilinguagem e setado para pt foi muito ruim, quase não entendia o que eu falava
+# Vale testar todos os tamanhos de modelos, estão todos aqui https://huggingface.co/Systran
+
 
 import elevenlabs, pyaudio, wave, numpy, collections, faster_whisper, torch.cuda
 import time,os
@@ -11,7 +13,7 @@ client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
 elevenlabs.set_api_key("aece25f51c8252ea4541f2b1604cac3d")
 
 
-model, answer, history = faster_whisper.WhisperModel(model_size_or_path="tiny.en", device='cuda' if torch.cuda.is_available() else 'cpu'), "", []
+model, answer, history = faster_whisper.WhisperModel(model_size_or_path="tiny", device='cuda' if torch.cuda.is_available() else 'cpu'), "", []
 
 
 def get_levels(data, long_term_noise_level, current_noise_level):
@@ -59,9 +61,9 @@ while True:
     tic = time.perf_counter()        
     if select_whisper:    
         # FASTER WHISPER
-        print("Using FastWhisper")
+        print("Using FasterWhisper")
         print(select_whisper)
-        user_text = " ".join(seg.text for seg in model.transcribe("voice_record.wav")[0])
+        user_text = " ".join(seg.text for seg in model.transcribe("voice_record.wav", language='pt')[0])
     else:
         # NORMAL WHISPER
         print("Using Whisper")

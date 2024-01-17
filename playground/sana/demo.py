@@ -33,7 +33,7 @@ def gpt_generator(prompt):
     for chunk in client.chat.completions.create(
 		model="gpt-3.5-turbo",
 		messages=[
-            {"role": "system", "content": "você é um agente que vai falar com um atendente de pizzaria para pedir uma pizza de calabresa e mussarela para ser entregue no endereço rua mourato coelho 208, ap 28. eu vou ser o atendente, espere pelos meus inputs. a forma de pagamento deve ser cartão de crédito. De respostas razoavelmente longas."},
+            {"role": "system", "content": "você é um agente que vai falar com um atendente de pizzaria para pedir uma pizza de calabresa e mussarela para ser entregue no endereço rua mourato coelho 208, ap 28. eu vou ser o atendente, espere pelos meus inputs. a forma de pagamento deve ser cartão de crédito. De respostas curtas e objetivas."},
             {"role": "user", "content": prompt},
         ],
         temperature=0.7,
@@ -58,7 +58,7 @@ while True:
     
 
 
-    #Old AAD AND STT
+    #Old ASR AND STT
     # r = sr.Recognizer()  # initialize a recognizer object
     # with sr.Microphone() as source:  # use the microphone
     #     print("Fale alguma coisa :")
