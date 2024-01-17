@@ -27,6 +27,25 @@ def get_levels(data, long_term_noise_level, current_noise_level):
     return pegel, long_term_noise_level, current_noise_level
 
 
+#streamed version of gpt
+def gpt_generator(prompt): 
+    i=0
+    for chunk in client.chat.completions.create(
+		model="gpt-3.5-turbo",
+		messages=[
+            {"role": "system", "content": "você é um agente que vai falar com um atendente de pizzaria para pedir uma pizza de calabresa e mussarela para ser entregue no endereço rua mourato coelho 208, ap 28. eu vou ser o atendente, espere pelos meus inputs. a forma de pagamento deve ser cartão de crédito. De respostas razoavelmente longas."},
+            {"role": "user", "content": prompt},
+        ],
+        temperature=0.7,
+		stream = True
+	):
+        # print("\nchunk #:",i)
+        i=i+1
+        if (text_chunk := chunk.choices[0].delta.content):
+            print(text_chunk, end="", flush=True) 
+            yield text_chunk
+
+
 
 while True: 
 
@@ -101,32 +120,35 @@ while True:
     print("Atendente disse: {}".format(waiter_input))
 
 
+    #NORMAL GPT
     #Sending waiter input to GPT to get the buyer input
-    # prompt = input("Usuário: ")
-    # print(prompt)
-    tic = time.perf_counter()
-    prompt = waiter_input
-    completion = client.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=[
-            {"role": "system", "content": "você é um agente que vai falar com um atendente de pizzaria para pedir uma pizza de calabresa e mussarela para ser entregue no endereço rua mourato coelho 208, ap 28. eu vou ser o atendente, espere pelos meus inputs. a forma de pagamento deve ser cartão de crédito. De respostas curtas."},
-            {"role": "user", "content": prompt},
-        ],
-        temperature=0.7,
-    )
-    buyer_input = completion.choices[0].message.content
-    toc = time.perf_counter()
-    times_openai.append(toc -tic)
-    print(f"Delta_t openai {times_openai[-1]}")
-    print(buyer_input)
+    # tic = time.perf_counter()
+    # prompt = waiter_input
+    # completion = client.chat.completions.create(
+    #     model="gpt-3.5-turbo",
+    #     messages=[
+    #         {"role": "system", "content": "você é um agente que vai falar com um atendente de pizzaria para pedir uma pizza de calabresa e mussarela para ser entregue no endereço rua mourato coelho 208, ap 28. eu vou ser o atendente, espere pelos meus inputs. a forma de pagamento deve ser cartão de crédito. De respostas curtas."},
+    #         {"role": "user", "content": prompt},
+    #     ],
+    #     temperature=0.7,
+    # )
+    # buyer_input = completion.choices[0].message.content
+    # toc = time.perf_counter()
+    # times_openai.append(toc -tic)
+    # print(f"Delta_t openai {times_openai[-1]}")
+    # print(buyer_input)
 
+    # audio_stream = generate(
+    #   text=buyer_input,
+    #   stream=True,
+    #   model="eleven_multilingual_v1"
+    # )
 
-
-    #Converting the buyer input to audio
+    #STREAMED GPT
     audio_stream = generate(
-      text=buyer_input,
-      stream=True,
-      model="eleven_multilingual_v1"
+        text=gpt_generator(waiter_input),
+        model='eleven_multilingual_v1',
+        stream=True        
     )
-
     elevenlabs.stream(audio_stream)
+

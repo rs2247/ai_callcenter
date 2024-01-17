@@ -11,7 +11,7 @@ def text_stream():
 
 audio = generate(
     text=text_stream(),
-    model='eleven_monolingual_v1',
+    model='eleven_multilingual_v1',
     stream=True, 
     api_key = "aece25f51c8252ea4541f2b1604cac3d"
 )
