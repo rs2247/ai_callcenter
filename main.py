@@ -42,6 +42,7 @@ vocode.setenv(
     OPENAI_API_KEY=os.getenv('OPENAI_API_KEY'),
     AZURE_SPEECH_KEY=os.getenv('AZURE_SPEECH_KEY'),
     AZURE_SPEECH_REGION=os.getenv('AZURE_SPEECH_REGION'),
+    DEEPGRAM_API_KEY=os.getenv('DEEPGRAM_API_KEY')
 )
 
 from vocode.streaming.streaming_conversation import StreamingConversation
@@ -65,8 +66,8 @@ async def main():
         microphone_input,
         speaker_output,
     ) = create_streaming_microphone_input_and_speaker_output(
-        use_default_devices=False,
-        logger=logger,
+        use_default_devices=True,
+        # logger=logger,
         use_blocking_speaker_output=True,  # this moves the playback to a separate thread, set to False to use the main thread
     )
 
@@ -75,15 +76,17 @@ async def main():
     synthesizerConfig.language_code = "pt"
 
 
-    transcriberConfig = AzureTranscriberConfig.from_input_device(
+    transcriberConfig = DeepgramTranscriberConfig.from_input_device(
                 microphone_input, endpointing_config=PunctuationEndpointingConfig(), mute_during_speech=True,
             )
     transcriberConfig.language = "pt-BR"
+    transcriberConfig.model="nova-2"
 
     conversation = StreamingConversation(
         output_device=speaker_output,
-        transcriber=AzureTranscriber(
-            transcriberConfig
+        transcriber=DeepgramTranscriber(
+            transcriberConfig,
+            logger=logger
         ),
         agent=ChatGPTAgent(
             ChatGPTAgentConfig(
@@ -98,7 +101,7 @@ async def main():
         synthesizer=AzureSynthesizer(
             synthesizerConfig
         ),
-        logger=logger,
+        # logger=logger,
     )
     await conversation.start()
     print("Conversation started, press Ctrl+C to end")
