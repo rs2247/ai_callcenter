@@ -42,7 +42,8 @@ vocode.setenv(
     OPENAI_API_KEY=os.getenv('OPENAI_API_KEY'),
     AZURE_SPEECH_KEY=os.getenv('AZURE_SPEECH_KEY'),
     AZURE_SPEECH_REGION=os.getenv('AZURE_SPEECH_REGION'),
-    DEEPGRAM_API_KEY=os.getenv('DEEPGRAM_API_KEY')
+    DEEPGRAM_API_KEY=os.getenv('DEEPGRAM_API_KEY'),
+    ELEVEN_LABS_API_KEY=os.getenv('ELEVEN_LABS_API_KEY')
 )
 
 from vocode.streaming.streaming_conversation import StreamingConversation
@@ -68,16 +69,31 @@ async def main():
     ) = create_streaming_microphone_input_and_speaker_output(
         use_default_devices=True,
         # logger=logger,
-        use_blocking_speaker_output=True,  # this moves the playback to a separate thread, set to False to use the main thread
+        use_blocking_speaker_output=False,  # this moves the playback to a separate thread, set to False to use the main thread
     )
 
     synthesizerConfig = AzureSynthesizerConfig.from_output_device(speaker_output)
     synthesizerConfig.voice_name = "pt-BR-AntonioNeural"
     synthesizerConfig.language_code = "pt"
+    synthesizer = AzureSynthesizer(
+            synthesizerConfig,
+            logger=logger
+        )
+
+
+    # synthesizerConfig = ElevenLabsSynthesizerConfig.from_output_device(speaker_output)
+    # synthesizerConfig.model_id = 'eleven_multilingual_v2'
+    # # synthesizerConfig.voice_id = 'pNInz6obpgDQGcFmaJgB' 
+    # synthesizerConfig.voice_id = 'NGS0ZsC7j4t4dCWbPdgO' # Dyego, portugues
+    # synthesizer = ElevenLabsSynthesizer(
+    #     synthesizerConfig,
+    #     logger=logger
+    # )
 
 
     transcriberConfig = DeepgramTranscriberConfig.from_input_device(
-                microphone_input, endpointing_config=PunctuationEndpointingConfig(), mute_during_speech=True,
+                microphone_input, endpointing_config=PunctuationEndpointingConfig(),
+                # mute_during_speech=True,
             )
     transcriberConfig.language = "pt-BR"
     transcriberConfig.model="nova-2"
@@ -96,12 +112,15 @@ async def main():
                   Você deve solicitar uma pizza de portuguesa, para entregar na Rua da Consolação 867.
                   Se o atendente pedir para confirmar seu número de telefone, o número é 11988749242.
                   Ao final, você deve perguntar o preço da pizza e o tempo para entrega.''',
+                #   send_filler_audio=True,
+                #   allow_agent_to_be_cut_off=True,
+                  model_name='gpt-3.5-turbo-1106',
+                  temperature=0.2,
+                  logger=logger
             )
         ),
-        synthesizer=AzureSynthesizer(
-            synthesizerConfig
-        ),
-        # logger=logger,
+        synthesizer=synthesizer,
+        logger=logger,
     )
     await conversation.start()
     print("Conversation started, press Ctrl+C to end")
