@@ -72,23 +72,23 @@ async def main():
         use_blocking_speaker_output=False,  # this moves the playback to a separate thread, set to False to use the main thread
     )
 
-    # synthesizerConfig = AzureSynthesizerConfig.from_output_device(speaker_output)
-    # synthesizerConfig.voice_name = "pt-BR-AntonioNeural"
-    # synthesizerConfig.language_code = "pt"
-    # synthesizer = AzureSynthesizer(
-    #         synthesizerConfig,
-    #         logger=logger
-    #     )
+    synthesizerConfig = AzureSynthesizerConfig.from_output_device(speaker_output)
+    synthesizerConfig.voice_name = "pt-BR-AntonioNeural"
+    synthesizerConfig.language_code = "pt"
+    synthesizer = AzureSynthesizer(
+            synthesizerConfig,
+            logger=logger
+        )
 
 
-    synthesizerConfig = ElevenLabsSynthesizerConfig.from_output_device(speaker_output)
-    synthesizerConfig.model_id = 'eleven_multilingual_v2'
-    # synthesizerConfig.voice_id = 'pNInz6obpgDQGcFmaJgB' 
-    synthesizerConfig.voice_id = 'NGS0ZsC7j4t4dCWbPdgO' # Dyego, portugues
-    synthesizer = ElevenLabsSynthesizer(
-        synthesizerConfig,
-        logger=logger
-    )
+    # synthesizerConfig = ElevenLabsSynthesizerConfig.from_output_device(speaker_output)
+    # synthesizerConfig.model_id = 'eleven_multilingual_v2'
+    # # synthesizerConfig.voice_id = 'pNInz6obpgDQGcFmaJgB' 
+    # synthesizerConfig.voice_id = 'NGS0ZsC7j4t4dCWbPdgO' # Dyego, portugues
+    # synthesizer = ElevenLabsSynthesizer(
+    #     synthesizerConfig,
+    #     logger=logger
+    # )
 
 
     transcriberConfig = DeepgramTranscriberConfig.from_input_device(
@@ -115,6 +115,7 @@ async def main():
                 #   send_filler_audio=True,
                 #   allow_agent_to_be_cut_off=True,
                   model_name='gpt-3.5-turbo-1106',
+                  temperature=0.2,
                   logger=logger
             )
         ),
