@@ -10,6 +10,7 @@ I suggest creating a python venv to avoid potential version conflicts
 
     pip install 'vocode[io]'
     pip install python-dotenv
+    pip install matplotlib
 
 # Config keys
 
