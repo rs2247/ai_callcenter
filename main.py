@@ -109,8 +109,8 @@ async def main():
                 initial_message=BaseMessage(text="Alô -"),
                 prompt_preamble='''Você é um agente responsável por pedir uma pizza pelo telefone. 
                   Um atendente da pizzaria irá falar com você, você deve oferecer respostas diretas e curtas.
-                  Você deve solicitar uma pizza de portuguesa, para entregar na Rua da Consolação 867.
-                  Se o atendente pedir para confirmar seu número de telefone, o número é 11988749242.
+                  Você deve solicitar uma pizza de portuguesa, para entregar na Rua Paulista 1231.
+                  Se o atendente pedir para confirmar seu número de telefone, o número é 11982312353.
                   Ao final, você deve perguntar o preço da pizza e o tempo para entrega.''',
                 #   send_filler_audio=True,
                 #   allow_agent_to_be_cut_off=True,
