@@ -69,12 +69,14 @@ async def main():
     ) = create_streaming_microphone_input_and_speaker_output(
         use_default_devices=True,
         # logger=logger,
-        use_blocking_speaker_output=False,  # this moves the playback to a separate thread, set to False to use the main thread
+        use_blocking_speaker_output=True,  # this moves the playback to a separate thread, set to False to use the main thread
     )
 
     synthesizerConfig = AzureSynthesizerConfig.from_output_device(speaker_output)
-    synthesizerConfig.voice_name = "pt-BR-AntonioNeural"
-    synthesizerConfig.language_code = "pt"
+    # synthesizerConfig.voice_name = "pt-BR-AntonioNeural"
+    synthesizerConfig.voice_name = "en-US-RyanMultilingualNeural"
+    # synthesizerConfig.language_code = "pt"
+    synthesizerConfig.language_code = "pt-BR"
     synthesizer = AzureSynthesizer(
             synthesizerConfig,
             logger=logger
@@ -106,12 +108,17 @@ async def main():
         ),
         agent=ChatGPTAgent(
             ChatGPTAgentConfig(
-                initial_message=BaseMessage(text="Alô -"),
+                initial_message=BaseMessage(text="Alôô."),
                 prompt_preamble='''Você é um agente responsável por pedir uma pizza pelo telefone. 
-                  Um atendente da pizzaria irá falar com você, você deve oferecer respostas diretas e curtas.
-                  Você deve solicitar uma pizza de portuguesa, para entregar na Rua Paulista 1231.
-                  Se o atendente pedir para confirmar seu número de telefone, o número é 11982312353.
-                  Ao final, você deve perguntar o preço da pizza e o tempo para entrega.''',
+                  Um atendente da pizzaria irá falar com você, você deve oferecer respostas curtas e objetivas.
+                  Você deve solicitar uma pizza de portuguesa.
+                  O endereço de entrega é na Rua Paulista 1231, você deve passar essa informação apenas se solicitada.
+                  Se o atendente pedir para confirmar seu número de telefone, o número é 11982312353, você deve passar essa informação apenas se solicitada.
+                  Se o atendente falar algo que não faça sentido para esse contexto, ou se você não entender o que ele quis dizer, você deve responder simplesmente com "Não entendi direito, você pode repetir?"
+                  Se o atendente falar coisas como "está bom?", "tudo bem", "beleza", "certo", "tudo certo", "aham", e similares, ele está apenas confirmando, você deve responder apenas "-".
+                  Você deve avaliar se a fala do atendente demanda alguma resposta ou não. Se você achar que o atendente ainda não terminou a sua lógica, você deve responder apenas "-", e aguardar a próxima sentença do atendente.
+                  Ao final, não esqueça de pegar o preço da pizza e o tempo para entrega.
+                  ''',
                 #   send_filler_audio=True,
                 #   allow_agent_to_be_cut_off=True,
                   model_name='gpt-3.5-turbo-1106',
