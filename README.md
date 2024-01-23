@@ -20,7 +20,32 @@ Create a .env file with the API keys from each provider
     OPENAI_API_KEY=
     AZURE_SPEECH_KEY=
     AZURE_SPEECH_REGION=
+    DEEPGRAM_API_KEY=
+    TWILIO_ACCOUNT_SID=
+    TWILIO_AUTH_TOKEN=
+    BASE_URL= //if running phone calls
 
-# Run
-
+# Run locally
+ 
     python main.py
+
+# Run with Twilio
+
+Set up hosting so that Twilio can hit your server:
+ 
+    ngrok http 3000
+
+Update in the .env file the URL that is tunneling localhost 3000 without https://. Get this URL from the output of ngrok, ex: 
+ 
+    BASE_URL=asdf1234.ngrok.app 
+  
+On another shell, go to the telephony directory and start the server: 
+ 
+    docker build -t vocode-telephony-app .
+    docker-compose up
+  
+On another shell, run the pizzabot caller
+ 
+    poetry install  //install dependencies and start a new env, since this script needs pydantic v2.x and vocode still doesn't support it
+                    //poetry ref https://python-poetry.org/docs/basic-usage/
+    poetry run python outbound_pizzacall.py
