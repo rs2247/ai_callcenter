@@ -62,8 +62,11 @@ async def main():
               Se o atendente perguntar você não vai querer refrigerante nem borda recheada.
               A forma de pagamento deve ser cartão de crédito na entrega, em hipótese alguma forneça dados de cartão de crédito durante a interação.
               Ao final, você deve perguntar o preço da pizza e o tempo para entrega.''',
-            generate_responses=True
-            # output_to_speaker=True
+            generate_responses=True,
+            allow_agent_to_be_cut_off=True,
+            model_name='gpt-3.5-turbo-1106',
+            temperature=0.2
+          # output_to_speaker=True
         )
         
     )
