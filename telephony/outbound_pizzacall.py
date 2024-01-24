@@ -15,6 +15,8 @@ from vocode.streaming.telephony.conversation.outbound_call import OutboundCall
 from vocode.streaming.telephony.config_manager.redis_config_manager import (
     RedisConfigManager,
 )
+from vocode.streaming.models.telephony import TwilioConfig
+
 
 BASE_URL = os.environ["BASE_URL"]
 
@@ -28,7 +30,6 @@ async def main():
     synthesizerConfig.voice_name = "pt-BR-DonatoNeural"
     synthesizerConfig.language_code = "pt-BR"
 
-
     transcriberConfig = DeepgramTranscriberConfig.from_telephone_input_device(
         endpointing_config=PunctuationEndpointingConfig(),
         mute_during_speech=True,
@@ -36,9 +37,15 @@ async def main():
     transcriberConfig.language = "pt-BR"
     transcriberConfig.model="nova-2"
 
+    twilio_config = TwilioConfig(
+        account_sid=os.getenv("TWILIO_ACCOUNT_SID"),
+        auth_token=os.getenv("TWILIO_AUTH_TOKEN"),
+        record=True,
+    )
 
     outbound_call = OutboundCall(
         base_url=BASE_URL,
+        twilio_config=twilio_config,
         to_phone="+5512982252000", #sana
         # to_phone="+5511988749242", #andré
         from_phone="+19787572232",
