@@ -1,69 +1,256 @@
+import asyncio
 import logging
+import signal
+import vocode
 import os
-from fastapi import FastAPI
-from vocode.streaming.models.telephony import TwilioConfig
-from pyngrok import ngrok
-from vocode.streaming.telephony.config_manager.redis_config_manager import (
-    RedisConfigManager,
-)
-from vocode.streaming.models.agent import ChatGPTAgentConfig
-from vocode.streaming.models.message import BaseMessage
-from vocode.streaming.telephony.server.base import (
-    TwilioInboundCallConfig,
-    TelephonyServer,
-)
-
-from speller_agent import SpellerAgentFactory
-import sys
-
-# if running from python, this will load the local .env
-# docker-compose will load the .env file by itself
 from dotenv import load_dotenv
+from vocode.streaming.streaming_conversation import StreamingConversation
+from vocode.helpers import create_streaming_microphone_input_and_speaker_output
+from vocode.streaming.transcriber import *
+from vocode.streaming.agent import *
+from vocode.streaming.synthesizer import *
+from vocode.streaming.models.transcriber import *
+from vocode.streaming.models.agent import *
+from vocode.streaming.models.synthesizer import *
+from vocode.streaming.models.message import BaseMessage
+from vocode.streaming.models.telephony import TwilioConfig
+from opentelemetry import trace
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import SimpleSpanProcessor, SpanExporter
+from opentelemetry.sdk.resources import Resource
+from collections import defaultdict
 
-load_dotenv('../.env')
+load_dotenv()
 
-app = FastAPI(docs_url=None)
+PROD = (os.getenv('PROD').lower()=='true')
+if PROD:
+    try:
+        from vocode.streaming.telephony.conversation.outbound_call import OutboundCall
+        from vocode.streaming.telephony.config_manager.redis_config_manager import (
+            RedisConfigManager,
+        )
+    except:
+        raise Exception("Error loading libraries necessary for phone calls. Make sure you are using poetry to run the script to avoid dependency errors")
+
+
+
+# class PrintDurationSpanExporter(SpanExporter):
+#     def __init__(self):
+#         super().__init__()
+#         self.spans = defaultdict(list)
+
+#     def export(self, spans):
+#         for span in spans:
+#             duration_ns = span.end_time - span.start_time
+#             duration_s = duration_ns / 1e9
+#             self.spans[span.name].append(duration_s)
+
+#     def shutdown(self):
+#         for name, durations in self.spans.items():
+#             print(f"{name}: {sum(durations) / len(durations)}")
+
+
+# trace.set_tracer_provider(TracerProvider(resource=Resource.create({})))
+# trace.get_tracer_provider().add_span_processor(
+#     SimpleSpanProcessor(PrintDurationSpanExporter())
+# )
+
+
+#necessary?
+vocode.setenv(
+    OPENAI_API_KEY=os.getenv('OPENAI_API_KEY'),
+    AZURE_SPEECH_KEY=os.getenv('AZURE_SPEECH_KEY'),
+    AZURE_SPEECH_REGION=os.getenv('AZURE_SPEECH_REGION'),
+    DEEPGRAM_API_KEY=os.getenv('DEEPGRAM_API_KEY'),
+    ELEVEN_LABS_API_KEY=os.getenv('ELEVEN_LABS_API_KEY')
+)
+
 
 logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-config_manager = RedisConfigManager()
 
-BASE_URL = os.getenv("BASE_URL")
+async def main():
+    
 
-if not BASE_URL:
-    ngrok_auth = os.environ.get("NGROK_AUTH_TOKEN")
-    if ngrok_auth is not None:
-        ngrok.set_auth_token(ngrok_auth)
-    port = sys.argv[sys.argv.index("--port") + 1] if "--port" in sys.argv else 3000
+    system_definition = {
+        'transcriber':{
+            'class':DeepgramTranscriber,
+            'configClass':DeepgramTranscriberConfig,
+            'configVars':{
+                'language':"pt-BR",
+                'model':"nova-2"
+            }
+        },
+        'synthesizer':{
+            'class':AzureSynthesizer,
+            'configClass':AzureSynthesizerConfig,
+            'configVars':{
+                'voice_name': 'pt-BR-DonatoNeural',
+                'language_code':'pt-BR'
+            }
+        },
+        'agent':{
+            'class':ChatGPTAgent,
+            'configClass':ChatGPTAgentConfig,
+            'configVars':{
+                'initial_message': BaseMessage(text="Alô -"),
+                'prompt_preamble': '''Você é um agente responsável por pedir uma pizza pelo telefone. Seja gentil nas interações. 
+                  Um atendente da pizzaria irá falar com você, você deve esperar pelos inputs dele e oferecer respostas diretas e curtas.
+                  Você deve solicitar uma pizza de portuguesa. Quando for perguntado, informe que é para entregar na Rua da Consolação 867. Se for perguntado, informe que o Cep é 05417000
+                  Se o atendente pedir para confirmar seu número de telefone, o número é 11988749242.
+                  Se for perguntado, você ainda não tem cadastro na pizzaria.
+                  Se o atendente perguntar você não vai querer refrigerante nem borda recheada.
+                  A forma de pagamento deve ser cartão de crédito na entrega, em hipótese alguma forneça dados de cartão de crédito durante a interação.
+                  Ao final, você deve perguntar o preço da pizza e o tempo para entrega.''',
+                'generate_responses':True,
+                'allow_agent_to_be_cut_off':True,
+                'model_name':'gpt-3.5-turbo-1106',
+                'temperature':0.2
+            }
 
-    # Open a ngrok tunnel to the dev server
-    BASE_URL = ngrok.connect(port).public_url.replace("https://", "")
-    logger.info('ngrok tunnel "{}" -> "http://127.0.0.1:{}"'.format(BASE_URL, port))
+        }
+    }
 
-if not BASE_URL:
-    raise ValueError("BASE_URL must be set in environment if not using pyngrok")
-
-telephony_server = TelephonyServer(
-    base_url=BASE_URL,
-    config_manager=config_manager,
-    inbound_call_configs=[
-        TwilioInboundCallConfig(
-            url="/inbound_call",
-            agent_config=ChatGPTAgentConfig(
-                initial_message=BaseMessage(text="What up"),
-                prompt_preamble="Have a pleasant conversation about life",
-                generate_responses=True,
-            ),
-            twilio_config=TwilioConfig(
-                account_sid=os.environ["TWILIO_ACCOUNT_SID"],
-                auth_token=os.environ["TWILIO_AUTH_TOKEN"],
-            ),
+    #instantiating config objects for all modules of the system
+    agentConfig = system_definition['agent']['configClass'](**system_definition['agent']['configVars'])
+    if PROD: 
+        print("Running in prod!")
+        transcriberConfig = system_definition['transcriber']['configClass'].from_telephone_input_device(
+            endpointing_config=PunctuationEndpointingConfig(),
+            mute_during_speech=True,
+        )        
+        synthesizerConfig = system_definition['synthesizer']['configClass'].from_telephone_output_device()
+        twilio_config = TwilioConfig(
+            account_sid=os.getenv("TWILIO_ACCOUNT_SID"),
+            auth_token=os.getenv("TWILIO_AUTH_TOKEN"),
+            record=True
         )
-    ],
-    agent_factory=SpellerAgentFactory(),
-    logger=logger,
-)
 
-app.include_router(telephony_server.get_router())
+    else:
+        print("Running locally!")
+        microphone_input, speaker_output = create_streaming_microphone_input_and_speaker_output(
+            use_default_devices=False,
+            # logger=logger,
+            use_blocking_speaker_output=True,  # this moves the playback to a separate thread, set to False to use the main thread
+        )
+        transcriberConfig = system_definition['transcriber']['configClass'].from_input_device(
+                    microphone_input, endpointing_config=PunctuationEndpointingConfig(),
+                    mute_during_speech=True,
+                )
+        synthesizerConfig = system_definition['synthesizer']['configClass'].from_output_device(speaker_output)
+
+
+    
+    for component_name, component_config in (['transcriber',transcriberConfig],['synthesizer',synthesizerConfig]):
+        for var_name,var_value in system_definition[component_name]['configVars'].items():
+            setattr(component_config,var_name, var_value)
+        print(component_config,"\n")
+
+    
+    if PROD:
+        pass
+    else:
+
+        conversation = StreamingConversation(
+            output_device=speaker_output,
+            transcriber=system_definition['transcriber']['class'](
+                transcriberConfig,
+                logger=logger
+            ),
+            synthesizer=system_definition['synthesizer']['class'](
+                synthesizerConfig,
+                logger=logger
+            ),
+            agent=system_definition['agent']['class'](agentConfig),
+            logger=logger,
+        )
+        await conversation.start()
+        print("Conversation started, press Ctrl+C to end")
+        signal.signal(
+            signal.SIGINT, lambda _0, _1: asyncio.create_task(conversation.terminate())
+        )
+        while conversation.is_active():
+            chunk = await microphone_input.get_audio()
+            conversation.receive_audio(chunk)
+    
+    
+    # synthesizerConfig = AzureSynthesizerConfig.from_output_device(speaker_output)
+    # synthesizerConfig.voice_name = "pt-BR-AntonioNeural"
+    # synthesizerConfig.language_code = "pt"
+    # synthesizer = AzureSynthesizer(
+    #         synthesizerConfig,
+    #         logger=logger
+    #     )
+
+
+    # # synthesizerConfig = ElevenLabsSynthesizerConfig.from_output_device(speaker_output)
+    # # synthesizerConfig.model_id = 'eleven_multilingual_v2'
+    # # # synthesizerConfig.voice_id = 'pNInz6obpgDQGcFmaJgB' 
+    # # synthesizerConfig.voice_id = 'NGS0ZsC7j4t4dCWbPdgO' # Dyego, portugues
+    # # synthesizer = ElevenLabsSynthesizer(
+    # #     synthesizerConfig,
+    # #     logger=logger
+    # # )
+
+
+    # transcriberConfig = DeepgramTranscriberConfig.from_input_device(
+    #             microphone_input, endpointing_config=PunctuationEndpointingConfig()
+    #             # mute_during_speech=True,
+    #         )
+    # transcriberConfig.language = "pt-BR"
+    # transcriberConfig.model="nova-2"
+
+    # conversation = StreamingConversation(
+    #     output_device=speaker_output,
+    #     transcriber=DeepgramTranscriber(
+    #         transcriberConfig,
+    #         logger=logger
+    #     ),
+        
+    #     # transcriber=WhisperCPPTranscriber(
+    #     #     WhisperCPPTranscriberConfig.from_input_device(
+    #     #         microphone_input,
+    #     #         libname="/Users/sanabria/Desktop/code/whisper.cpp/libwhisper.so",
+    #     #         fname_model="/Users/sanabria/Desktop/code/whisper.cpp/models/ggml-medium.bin"
+    #     #     ),
+    #     #     # logger=logger
+    #     # ),
+    #     agent=ChatGPTAgent(
+    #         ChatGPTAgentConfig(
+    #             initial_message=BaseMessage(text="Alô -"),
+    #             prompt_preamble='''Você é um agente responsável por pedir uma pizza pelo telefone. Seja gentil nas interações. 
+    #               Um atendente da pizzaria irá falar com você, você deve esperar pelos inputs dele e oferecer respostas diretas e curtas.
+    #               Você deve solicitar uma pizza de portuguesa. Quando for perguntado, informe que é para entregar na Rua da Consolação 867. Se for perguntado, informe que o Cep é 05417000
+    #               Se o atendente pedir para confirmar seu número de telefone, o número é 11988749242.
+    #               Se for perguntado, você ainda não tem cadastro na pizzaria.
+    #               Se o atendente perguntar você não vai querer refrigerante nem borda recheada.
+    #               A forma de pagamento deve ser cartão de crédito na entrega, em hipótese alguma forneça dados de cartão de crédito durante a interação.
+    #               Ao final, você deve perguntar o preço da pizza e o tempo para entrega.''',
+    #             # prompt_preamble =  "você é um agente que vai falar com um atendente de pizzaria para
+    #             # pedir uma pizza de calabresa e mussarela para ser entregue no endereço rua mourato coelho 208, ap 28. 
+    #             # eu vou ser o atendente, espere pelos meus inputs. a forma de pagamento deve ser cartão de crédito. 
+    #             # De respostas curtas e objetivas.
+    #             #   send_filler_audio=True,
+    #               allow_agent_to_be_cut_off=True,
+    #               model_name='gpt-3.5-turbo-1106',
+    #               temperature=0.2,
+    #               logger=logger
+    #         )
+    #     ),
+    #     synthesizer=synthesizer,
+    #     logger=logger,
+    # )
+    # await conversation.start()
+    # print("Conversation started, press Ctrl+C to end")
+    # signal.signal(
+    #     signal.SIGINT, lambda _0, _1: asyncio.create_task(conversation.terminate())
+    # )
+    # while conversation.is_active():
+    #     chunk = await microphone_input.get_audio()
+    #     conversation.receive_audio(chunk)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
