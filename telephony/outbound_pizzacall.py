@@ -1,7 +1,7 @@
 import os, inspect
 from dotenv import load_dotenv
 
-load_dotenv('/Users/sanabria/Desktop/code/ai_callcenter/.env')
+load_dotenv('../.env')
 
 from vocode.streaming.agent.chat_gpt_agent import ChatGPTAgent
 from vocode.streaming.models.agent import ChatGPTAgentConfig
@@ -19,6 +19,7 @@ from vocode.streaming.models.telephony import TwilioConfig
 
 
 BASE_URL = os.environ["BASE_URL"]
+PHONE_NUMBER = os.environ["PHONE_NUMBER"]
 
 from vocode.helpers import create_streaming_microphone_input_and_speaker_output
 
@@ -45,9 +46,7 @@ async def main():
 
     outbound_call = OutboundCall(
         base_url=BASE_URL,
-        twilio_config=twilio_config,
-        to_phone="+5512982252000", #sana
-        # to_phone="+5511988749242", #andré
+        to_phone=PHONE_NUMBER,
         from_phone="+19787572232",
         config_manager=config_manager,
         transcriber_config= transcriberConfig,

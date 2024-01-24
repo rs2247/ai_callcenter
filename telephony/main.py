@@ -20,7 +20,7 @@ import sys
 # docker-compose will load the .env file by itself
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv('../.env')
 
 app = FastAPI(docs_url=None)
 
