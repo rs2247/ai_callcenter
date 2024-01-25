@@ -97,15 +97,16 @@ async def main():
             'class':ChatGPTAgent,
             'configClass':ChatGPTAgentConfig,
             'configVars':{
-                'initial_message': BaseMessage(text="Alô -"),
-                'prompt_preamble': '''Você é um agente responsável por pedir uma pizza pelo telefone. Seja gentil nas interações. 
+                # 'initial_message': BaseMessage(text="Alô -"),
+                'prompt_preamble': '''Você é um agente responsável por pedir uma pizza pelo telefone. Seja curto e direto ao ponto. 
                   Um atendente da pizzaria irá falar com você, você deve esperar pelos inputs dele e oferecer respostas diretas e curtas.
                   Você deve solicitar uma pizza de portuguesa. Quando for perguntado, informe que é para entregar na Rua da Consolação 867. Se for perguntado, informe que o Cep é 05417000
                   Se o atendente pedir para confirmar seu número de telefone, o número é 11988749242.
                   Se for perguntado, você ainda não tem cadastro na pizzaria.
                   Se o atendente perguntar você não vai querer refrigerante nem borda recheada.
                   A forma de pagamento deve ser cartão de crédito na entrega, em hipótese alguma forneça dados de cartão de crédito durante a interação.
-                  Ao final, você deve perguntar o preço da pizza e o tempo para entrega.''',
+                  Ao final, você deve perguntar o preço da pizza e o tempo para entrega.
+                  Inicie a conversa com Oi e não Olá'''
                 'generate_responses':True,
                 'allow_agent_to_be_cut_off':True,
                 'model_name':'gpt-3.5-turbo-1106',
@@ -131,7 +132,6 @@ async def main():
         )
         config_manager = RedisConfigManager()
     
-
     else:
         print("Running locally!")
         microphone_input, speaker_output = create_streaming_microphone_input_and_speaker_output(
@@ -146,12 +146,13 @@ async def main():
         synthesizerConfig = system_definition['synthesizer']['configClass'].from_output_device(speaker_output)
 
     
+    #setting config objects params
     for component_name, component_config in (['transcriber',transcriberConfig],['synthesizer',synthesizerConfig]):
         for var_name,var_value in system_definition[component_name]['configVars'].items():
             setattr(component_config,var_name, var_value)
         print(component_config,"\n")
 
-    
+    #running
     if PROD:
         outbound_call = OutboundCall(
             base_url=BASE_URL,
@@ -165,7 +166,6 @@ async def main():
         )
         input("Press enter to start call...")
         await outbound_call.start()
-
     else:
         conversation = StreamingConversation(
             output_device=speaker_output,
