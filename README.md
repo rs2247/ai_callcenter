@@ -26,8 +26,16 @@ Create a .env file with the API keys from each provider
     TWILIO_AUTH_TOKEN=
     BASE_URL= //if running phone calls
 
-# Run locally
  
+# Run (shortcut)
+
+Define if you want to run in prod or locally with env variable PROD. Then execute de run script in telephony folder
+
+    cd telephony
+    sh run.sh
+
+# Run locally
+
     python main.py
 
 # Run with Twilio

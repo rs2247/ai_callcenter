@@ -29,6 +29,9 @@ if PROD:
         from vocode.streaming.telephony.config_manager.redis_config_manager import (
             RedisConfigManager,
         )
+        BASE_URL = os.environ["BASE_URL"]
+        PHONE_NUMBER = os.environ["PHONE_NUMBER"]
+    
     except:
         raise Exception("Error loading libraries necessary for phone calls. Make sure you are using poetry to run the script to avoid dependency errors")
 
@@ -73,7 +76,6 @@ logger.setLevel(logging.DEBUG)
 
 async def main():
     
-
     system_definition = {
         'transcriber':{
             'class':DeepgramTranscriber,
@@ -127,6 +129,8 @@ async def main():
             auth_token=os.getenv("TWILIO_AUTH_TOKEN"),
             record=True
         )
+        config_manager = RedisConfigManager()
+    
 
     else:
         print("Running locally!")
@@ -136,11 +140,10 @@ async def main():
             use_blocking_speaker_output=True,  # this moves the playback to a separate thread, set to False to use the main thread
         )
         transcriberConfig = system_definition['transcriber']['configClass'].from_input_device(
-                    microphone_input, endpointing_config=PunctuationEndpointingConfig(),
-                    mute_during_speech=True,
-                )
+            microphone_input, endpointing_config=PunctuationEndpointingConfig(),
+            mute_during_speech=True,
+        )
         synthesizerConfig = system_definition['synthesizer']['configClass'].from_output_device(speaker_output)
-
 
     
     for component_name, component_config in (['transcriber',transcriberConfig],['synthesizer',synthesizerConfig]):
@@ -150,9 +153,20 @@ async def main():
 
     
     if PROD:
-        pass
-    else:
+        outbound_call = OutboundCall(
+            base_url=BASE_URL,
+            to_phone=PHONE_NUMBER,
+            from_phone="+19787572232",
+            config_manager=config_manager,
+            transcriber_config= transcriberConfig,
+            synthesizer_config= synthesizerConfig,
+            agent_config= agentConfig
+            # output_to_speaker=True            
+        )
+        input("Press enter to start call...")
+        await outbound_call.start()
 
+    else:
         conversation = StreamingConversation(
             output_device=speaker_output,
             transcriber=system_definition['transcriber']['class'](
@@ -174,82 +188,6 @@ async def main():
         while conversation.is_active():
             chunk = await microphone_input.get_audio()
             conversation.receive_audio(chunk)
-    
-    
-    # synthesizerConfig = AzureSynthesizerConfig.from_output_device(speaker_output)
-    # synthesizerConfig.voice_name = "pt-BR-AntonioNeural"
-    # synthesizerConfig.language_code = "pt"
-    # synthesizer = AzureSynthesizer(
-    #         synthesizerConfig,
-    #         logger=logger
-    #     )
-
-
-    # # synthesizerConfig = ElevenLabsSynthesizerConfig.from_output_device(speaker_output)
-    # # synthesizerConfig.model_id = 'eleven_multilingual_v2'
-    # # # synthesizerConfig.voice_id = 'pNInz6obpgDQGcFmaJgB' 
-    # # synthesizerConfig.voice_id = 'NGS0ZsC7j4t4dCWbPdgO' # Dyego, portugues
-    # # synthesizer = ElevenLabsSynthesizer(
-    # #     synthesizerConfig,
-    # #     logger=logger
-    # # )
-
-
-    # transcriberConfig = DeepgramTranscriberConfig.from_input_device(
-    #             microphone_input, endpointing_config=PunctuationEndpointingConfig()
-    #             # mute_during_speech=True,
-    #         )
-    # transcriberConfig.language = "pt-BR"
-    # transcriberConfig.model="nova-2"
-
-    # conversation = StreamingConversation(
-    #     output_device=speaker_output,
-    #     transcriber=DeepgramTranscriber(
-    #         transcriberConfig,
-    #         logger=logger
-    #     ),
-        
-    #     # transcriber=WhisperCPPTranscriber(
-    #     #     WhisperCPPTranscriberConfig.from_input_device(
-    #     #         microphone_input,
-    #     #         libname="/Users/sanabria/Desktop/code/whisper.cpp/libwhisper.so",
-    #     #         fname_model="/Users/sanabria/Desktop/code/whisper.cpp/models/ggml-medium.bin"
-    #     #     ),
-    #     #     # logger=logger
-    #     # ),
-    #     agent=ChatGPTAgent(
-    #         ChatGPTAgentConfig(
-    #             initial_message=BaseMessage(text="Alô -"),
-    #             prompt_preamble='''Você é um agente responsável por pedir uma pizza pelo telefone. Seja gentil nas interações. 
-    #               Um atendente da pizzaria irá falar com você, você deve esperar pelos inputs dele e oferecer respostas diretas e curtas.
-    #               Você deve solicitar uma pizza de portuguesa. Quando for perguntado, informe que é para entregar na Rua da Consolação 867. Se for perguntado, informe que o Cep é 05417000
-    #               Se o atendente pedir para confirmar seu número de telefone, o número é 11988749242.
-    #               Se for perguntado, você ainda não tem cadastro na pizzaria.
-    #               Se o atendente perguntar você não vai querer refrigerante nem borda recheada.
-    #               A forma de pagamento deve ser cartão de crédito na entrega, em hipótese alguma forneça dados de cartão de crédito durante a interação.
-    #               Ao final, você deve perguntar o preço da pizza e o tempo para entrega.''',
-    #             # prompt_preamble =  "você é um agente que vai falar com um atendente de pizzaria para
-    #             # pedir uma pizza de calabresa e mussarela para ser entregue no endereço rua mourato coelho 208, ap 28. 
-    #             # eu vou ser o atendente, espere pelos meus inputs. a forma de pagamento deve ser cartão de crédito. 
-    #             # De respostas curtas e objetivas.
-    #             #   send_filler_audio=True,
-    #               allow_agent_to_be_cut_off=True,
-    #               model_name='gpt-3.5-turbo-1106',
-    #               temperature=0.2,
-    #               logger=logger
-    #         )
-    #     ),
-    #     synthesizer=synthesizer,
-    #     logger=logger,
-    # )
-    # await conversation.start()
-    # print("Conversation started, press Ctrl+C to end")
-    # signal.signal(
-    #     signal.SIGINT, lambda _0, _1: asyncio.create_task(conversation.terminate())
-    # )
-    # while conversation.is_active():
-    #     chunk = await microphone_input.get_audio()
-    #     conversation.receive_audio(chunk)
 
 
 if __name__ == "__main__":
