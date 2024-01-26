@@ -63,3 +63,7 @@ On another shell, run the pizzabot caller
     poetry install  //install dependencies and start a new env, since this script needs pydantic v2.x and vocode still doesn't support it
                     //poetry ref https://python-poetry.org/docs/basic-usage/
     poetry run python outbound_pizzacall.py
+
+Important:
+- Newer versios of elevenlabs require pydantic 2.0. So to run the twilio code, you need to use 
+elevenlabs=0.2.24 which requires pydantic 1.x (see pyproject.toml)
