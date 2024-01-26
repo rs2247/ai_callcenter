@@ -22,15 +22,17 @@ from collections import defaultdict
 
 load_dotenv()
 
+ADDRESS=os.getenv('ADDRESS')
+ZIPCODE=os.getenv('ZIPCODE')
 PROD = (os.getenv('PROD').lower()=='true')
+PHONE_NUMBER = os.environ["PHONE_NUMBER"]
 if PROD:
     try:
         from vocode.streaming.telephony.conversation.outbound_call import OutboundCall
         from vocode.streaming.telephony.config_manager.redis_config_manager import (
             RedisConfigManager,
         )
-        BASE_URL = os.environ["BASE_URL"]
-        PHONE_NUMBER = os.environ["PHONE_NUMBER"]
+        BASE_URL = os.environ["BASE_URL"]    
     
     except:
         raise Exception("Error loading libraries necessary for phone calls. Make sure you are using poetry to run the script to avoid dependency errors")
@@ -100,14 +102,14 @@ async def main():
             'configClass':ChatGPTAgentConfig,
             'configVars':{
                 # 'initial_message': BaseMessage(text="Alô -"),
-                'prompt_preamble': '''
+                'prompt_preamble': f'''
                   ### Instrução ###
                   Você é um agente responsável por pedir uma pizza pelo telefone. Seja curto e direto ao ponto. 
                   Um atendente da pizzaria irá falar com você, você deve esperar pelos inputs dele e oferecer respostas diretas e curtas.
                   Você deve solicitar uma pizza pequena de portuguesa.
-                  Quando for perguntado, informe que é para entregar na Rua da Consolação 867, apartamento 28. 
-                  Se for perguntado, informe que o Cep é 05417000
-                  Se o atendente pedir para confirmar seu número de telefone, o número é 11988749242.
+                  Quando for perguntado, informe que é para entregar na {ADDRESS}. 
+                  Se for perguntado, informe que o Cep é {ZIPCODE}
+                  Se o atendente pedir para confirmar seu número de telefone, o número é {PHONE_NUMBER[3:]}.
                   Se for perguntado, você ainda não tem cadastro na pizzaria.
                   Se o atendente perguntar, você não vai querer refrigerante nem borda recheada.
                   A forma de pagamento deve ser cartão de crédito na entrega, em hipótese alguma forneça dados de cartão de crédito durante a interação.
@@ -120,7 +122,7 @@ async def main():
                   Atendente: Você já possui cadastro?
                   AI: Não tenho não
                   Atendente: Qual seu CEP? 
-                  AI: Meu CEP é 05417000
+                  AI: Meu CEP é {ZIPCODE}
                   Atendente: Qual vai ser o pedido?
                   AI: Uma pizza de portuguesa
                   Atendente: Você gostaria de bebida?
