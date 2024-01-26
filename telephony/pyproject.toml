@@ -14,6 +14,7 @@ pyngrok = "^6.0.0"
 python-dotenv = "^1.0.0"
 vocode = "0.1.111"
 elevenlabs = "0.2.24"
+num2words = "0.5.13"
 
 [build-system]
 requires = ["poetry-core"]

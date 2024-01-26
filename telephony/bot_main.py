@@ -20,6 +20,7 @@ from opentelemetry.sdk.trace.export import SimpleSpanProcessor, SpanExporter
 from opentelemetry.sdk.resources import Resource
 from collections import defaultdict
 import elevenlabs
+from num2words import num2words
 
 # print("ELEVENLABS FILEPATH")
 # print(elevenlabs.__file__)
@@ -79,8 +80,45 @@ logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
+def number_to_text_phone(number):
+    number = str(number)
+    
+    if len(number) == 11: #mobile
+        #area code
+        number_text = num2words(number[0:2], lang='pt-br') + ','
+        #first digit
+        number_text += num2words(number[2], lang='pt-br') + ','
+        #rest
+        for i in range(4):
+            digits = number[3+2*i:5+2*i]
+            if digits[0]=='0':
+                number_text += 'zero '    
+            number_text += num2words(digits, lang='pt-br') + ','
+    elif len(number) == 10: #local
+        raise NotImplemented ("Implement number_to_text_phone for local phone numbers")
+
+    else:
+        raise Exception("Number should have 11(mobile) or 10(local) digits, including area code (DDD)")
+
+    return number_text
+
+def number_to_text_zipcode(zipcode):
+    zipcode = str(zipcode)
+    assert len(zipcode)==8, "Zipcode should have 8 digits"
+    if zipcode[0]=='0':
+        number_text = 'zero '
+    number_text += num2words(zipcode[0:2], lang='pt-br') + ','
+    for i in range(6):
+        number_text += num2words(zipcode[i+2], lang='pt-br') + ' '
+        if i == 2:
+            number_text += ','
+    return number_text
+
 
 async def main():
+
+    print(number_to_text_phone(PHONE_NUMBER[3:]))
+    print(number_to_text_zipcode(ZIPCODE))
     
     system_definition = {
         'transcriber':{
@@ -93,27 +131,28 @@ async def main():
                 'model':"nova-2"
             }
         },
-        'synthesizer':{
-            'class':AzureSynthesizer,
-            'configClass':AzureSynthesizerConfig,
-            'configVars':{
-                'voice_name': 'pt-BR-DonatoNeural',
-                'language_code':'pt-BR'
-            }
         # 'synthesizer':{
-        #     'class':ElevenLabsSynthesizer,
-        #     'configClass':ElevenLabsSynthesizerConfig,
+        #     'class':AzureSynthesizer,
+        #     'configClass':AzureSynthesizerConfig,
         #     'configVars':{
-        #         'model_id': 'eleven_multilingual_v2',
-        #         # 'voice_id':'NGS0ZsC7j4t4dCWbPdgO', -- voice not found
-        #         # 'voice_id': 'pNInz6obpgDQGcFmaJgB',
-        #         'voice_id': '21m00Tcm4TlvDq8ikWAM', #Rachel
-        #         # 'voice_id': 'LcfcDJNUP1GQjkzn1xUU', #Emily
-        #         'api_key':os.getenv("ELEVEN_LABS_API_KEY"),
-        #         'optimize_streaming_latency': 3,
-        #         'stability': '0.8',
-        #         'similarity_boost': '0.75'
+        #         'voice_name': 'pt-BR-DonatoNeural',
+        #         'language_code':'pt-BR'
         #     }
+        'synthesizer':{
+            'class':ElevenLabsSynthesizer,
+            'configClass':ElevenLabsSynthesizerConfig,
+            'configVars':{
+                'model_id': 'eleven_multilingual_v2',
+                # 'model_id': 'eleven_turbo_v2',
+                # 'voice_id':'NGS0ZsC7j4t4dCWbPdgO', -- voice not found
+                # 'voice_id': 'pNInz6obpgDQGcFmaJgB',
+                'voice_id': '21m00Tcm4TlvDq8ikWAM', #Rachel
+                # 'voice_id': 'LcfcDJNUP1GQjkzn1xUU', #Emily
+                'api_key':os.getenv("ELEVEN_LABS_API_KEY"),
+                'optimize_streaming_latency': 3,
+                'stability': '0.8',
+                'similarity_boost': '0.75'
+            }
         },
         'agent':{
             'class':ChatGPTAgent,
@@ -123,26 +162,27 @@ async def main():
                 'prompt_preamble': f'''
                   ### Instrução ###
                   Você é um agente responsável por pedir uma pizza pelo telefone. Seja curto e direto ao ponto. 
-                  Fale de maneira informal, como um jovem brasileiro de 20 anos.
+                  Fale de maneira informal, como uma jovem brasileira de 20 anos.
                   Se perguntarem o seu nome é Ana.
                   Informe que você quer pedir uma pizza apenas no início da conversa. Não repita que quer pedir uma pizza ao menos que seja perguntado.
                   Um atendente da pizzaria irá falar com você, você deve esperar pelos inputs dele e oferecer respostas diretas e curtas.
                   Você deve solicitar uma pizza pequena de portuguesa.
                   Quando for perguntado, informe que é para entregar na {ADDRESS}. 
-                  Se for perguntado, informe que o Cep é {ZIPCODE}
-                  Se o atendente pedir para confirmar seu número de telefone, o número é {PHONE_NUMBER[3:]}.
+                  Se for perguntado, informe que o Cep é {number_to_text_zipcode(ZIPCODE)}
+                  Se o atendente pedir para confirmar seu número de telefone, o número é {number_to_text_phone(PHONE_NUMBER[3:])}.
                   Se for perguntado, você ainda não tem cadastro na pizzaria.
                   Se o atendente perguntar, você não vai querer refrigerante nem borda recheada.
                   A forma de pagamento deve ser cartão de crédito na entrega, em hipótese alguma forneça dados de cartão de crédito durante a interação.
                   Caso a atendente não informe, pergunte o tempo para entrega.
                   Inicie a conversa com Oi
+                  Escreva números sempre por extenso, nunca use dígitos.
 
                   ### Exemplo ###
                   Atendente: Bem vindo à pizzaria, como posso te ajudar? 
                   AI: Oi, gostaria de pedir uma pizza.
                   Atendente: Qual é o seu nome? 
                   AI: Meu nome é Ana.
-                  Atendente: Você já possui cadastro?
+                  Atendente: Você já tem cadastro?
                   AI: Não tenho não
                   Atendente: Qual seu CEP? 
                   AI: Meu CEP é {ZIPCODE}
