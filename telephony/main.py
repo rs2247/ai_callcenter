@@ -80,6 +80,8 @@ async def main():
         'transcriber':{
             'class':DeepgramTranscriber,
             'configClass':DeepgramTranscriberConfig,
+            'endpointing_config':TimeEndpointingConfig(),
+            # 'endpointing_config':PunctuationEndpointingConfig()
             'configVars':{
                 'language':"pt-BR",
                 'model':"nova-2"
@@ -98,15 +100,39 @@ async def main():
             'configClass':ChatGPTAgentConfig,
             'configVars':{
                 # 'initial_message': BaseMessage(text="Alô -"),
-                'prompt_preamble': '''Você é um agente responsável por pedir uma pizza pelo telefone. Seja curto e direto ao ponto. 
+                'prompt_preamble': '''
+                  ### Instrução ###
+                  Você é um agente responsável por pedir uma pizza pelo telefone. Seja curto e direto ao ponto. 
                   Um atendente da pizzaria irá falar com você, você deve esperar pelos inputs dele e oferecer respostas diretas e curtas.
-                  Você deve solicitar uma pizza de portuguesa. Quando for perguntado, informe que é para entregar na Rua da Consolação 867. Se for perguntado, informe que o Cep é 05417000
+                  Você deve solicitar uma pizza pequena de portuguesa.
+                  Quando for perguntado, informe que é para entregar na Rua da Consolação 867, apartamento 28. 
+                  Se for perguntado, informe que o Cep é 05417000
                   Se o atendente pedir para confirmar seu número de telefone, o número é 11988749242.
                   Se for perguntado, você ainda não tem cadastro na pizzaria.
-                  Se o atendente perguntar você não vai querer refrigerante nem borda recheada.
+                  Se o atendente perguntar, você não vai querer refrigerante nem borda recheada.
                   A forma de pagamento deve ser cartão de crédito na entrega, em hipótese alguma forneça dados de cartão de crédito durante a interação.
-                  Ao final, você deve perguntar o preço da pizza e o tempo para entrega.
-                  Inicie a conversa com Oi e não Olá'''
+                  Caso a atendente não informe, pergunte o tempo para entrega.
+                  Inicie a conversa com Oi
+
+                  ### Exemplo ###
+                  Atendente: Bem vindo à pizzaria, como posso te ajudar? 
+                  AI: Oi, gostaria de pedir uma pizza.
+                  Atendente: Você já possui cadastro?
+                  AI: Não tenho não
+                  Atendente: Qual seu CEP? 
+                  AI: Meu CEP é 05417000
+                  Atendente: Qual vai ser o pedido?
+                  AI: Uma pizza de portuguesa
+                  Atendente: Você gostaria de bebida?
+                  AI: Não precisa não
+                  Atendente: Ok, ficou 70 reais, qual a forma de pagamento?
+                  AI: Vai ser cartão de crédito na entrada
+                  Atendente: Ok, mais alguma coisa?
+                  AI: Quanto tempo para entregar? 
+                  Atendente: 30 minutos. Posso te ajudar em algo mais?
+                  AI: Não, obrigado
+
+                  ''',
                 'generate_responses':True,
                 'allow_agent_to_be_cut_off':True,
                 'model_name':'gpt-3.5-turbo-1106',
@@ -121,7 +147,7 @@ async def main():
     if PROD: 
         print("Running in prod!")
         transcriberConfig = system_definition['transcriber']['configClass'].from_telephone_input_device(
-            endpointing_config=PunctuationEndpointingConfig(),
+            endpointing_config=system_definition['transcriber']['endpointing_config'],
             mute_during_speech=True,
         )        
         synthesizerConfig = system_definition['synthesizer']['configClass'].from_telephone_output_device()
@@ -140,7 +166,7 @@ async def main():
             use_blocking_speaker_output=True,  # this moves the playback to a separate thread, set to False to use the main thread
         )
         transcriberConfig = system_definition['transcriber']['configClass'].from_input_device(
-            microphone_input, endpointing_config=PunctuationEndpointingConfig(),
+            microphone_input, endpointing_config=system_definition['transcriber']['endpointing_config'],
             mute_during_speech=True,
         )
         synthesizerConfig = system_definition['synthesizer']['configClass'].from_output_device(speaker_output)
