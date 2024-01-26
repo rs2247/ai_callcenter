@@ -13,7 +13,7 @@ vonage = "^3.5.1"
 pyngrok = "^6.0.0"
 python-dotenv = "^1.0.0"
 vocode = "0.1.111"
-
+elevenlabs = "0.2.24"
 
 [build-system]
 requires = ["poetry-core"]
