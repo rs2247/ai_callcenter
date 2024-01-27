@@ -176,6 +176,9 @@ async def main():
                   Caso a atendente não informe, pergunte o tempo para entrega.
                   Inicie a conversa com Oi
                   Escreva números sempre por extenso, nunca use dígitos.
+                  Se o atendente falar algo que não faça sentido para esse contexto, ou se você não entender o que ele quis dizer, você deve responder simplesmente com "Não entendi direito, você pode repetir???"
+                  Se o atendente falar coisas como "está bom?", "tudo bem", "beleza", "certo", "tudo certo", "aham", e similares, ele está apenas confirmando, você deve responder apenas "-".
+                  Você deve avaliar se a fala do atendente demanda alguma resposta ou não. Se você achar que o atendente ainda não terminou a sua lógica, você deve responder apenas "-", e aguardar a próxima sentença do atendente.
 
                   ### Exemplo ###
                   Atendente: Bem vindo à pizzaria, como posso te ajudar? 
