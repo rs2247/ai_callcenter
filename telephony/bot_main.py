@@ -25,7 +25,7 @@ from num2words import num2words
 # print("ELEVENLABS FILEPATH")
 # print(elevenlabs.__file__)
 
-load_dotenv()
+load_dotenv(override=True)
 
 ADDRESS=os.getenv('ADDRESS')
 ZIPCODE=os.getenv('ZIPCODE')
@@ -216,7 +216,7 @@ async def main():
         print("Running in prod!")
         transcriberConfig = system_definition['transcriber']['configClass'].from_telephone_input_device(
             endpointing_config=system_definition['transcriber']['endpointing_config'],
-            mute_during_speech=True,
+            # mute_during_speech=True,
         )        
         synthesizerConfig = system_definition['synthesizer']['configClass'].from_telephone_output_device()
         twilio_config = TwilioConfig(
