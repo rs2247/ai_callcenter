@@ -30,12 +30,7 @@ from vocode.streaming.agent.llamacpp_agent import LlamacppAgent
 # print("ELEVENLABS FILEPATH")
 # print(elevenlabs.__file__)
 
-# from TTS.api import TTS
-# tts = TTS("tts_models/en/ljspeech/tacotron2-DDC_ph")
-
-
-
-load_dotenv()
+load_dotenv(override=True)
 
 ADDRESS=os.getenv('ADDRESS')
 ZIPCODE=os.getenv('ZIPCODE')
@@ -166,7 +161,7 @@ async def main():
             'class':DeepgramTranscriber,
             'configClass':DeepgramTranscriberConfig,
             'endpointing_config':TimeEndpointingConfig(),
-            # 'endpointing_config':PunctuationEndpointingConfig()
+            # 'endpointing_config':PunctuationEndpointingConfig(),
             'configVars':{
                 'language':"pt-BR",
                 'model':"nova-2"
@@ -179,13 +174,15 @@ async def main():
         #         'voice_name': 'pt-BR-DonatoNeural',
         #         'language_code':'pt-BR'
         #     }
+        # },
         'synthesizer':{
             'class':ElevenLabsSynthesizer,
             'configClass':ElevenLabsSynthesizerConfig,
             'configVars':{
                 'model_id': 'eleven_multilingual_v2',
+                #  'model_id': 'eleven_multilingual_v1',
                 # 'model_id': 'eleven_turbo_v2',
-                'voice_id':'NGS0ZsC7j4t4dCWbPdgO', #Dyego
+                'voice_id':'NGS0ZsC7j4t4dCWbPdgO', # Dyego -- voice not found
                 # 'voice_id': 'pNInz6obpgDQGcFmaJgB',
                 # 'voice_id': '21m00Tcm4TlvDq8ikWAM', #Rachel
                 # 'voice_id': 'LcfcDJNUP1GQjkzn1xUU', #Emily
@@ -266,8 +263,8 @@ async def main():
                 'prompt_preamble': f'''
                   ### Instrução ###
                   Você é um agente responsável por pedir uma pizza pelo telefone. Seja curto e direto ao ponto. 
-                  Fale de maneira informal, como uma jovem brasileira de 20 anos.
-                  Se perguntarem o seu nome é Renato.
+                  Fale de maneira informal, como um jovem brasileiro de 25 anos.
+                  Se perguntarem o seu nome é Pedro.
                   Informe que você quer pedir uma pizza apenas no início da conversa. Não repita que quer pedir uma pizza ao menos que seja perguntado.
                   Um atendente da pizzaria irá falar com você, você deve esperar pelos inputs dele e oferecer respostas diretas e curtas.
                   Você deve solicitar uma pizza pequena de portuguesa.
@@ -278,38 +275,37 @@ async def main():
                   Se o atendente perguntar, você não vai querer refrigerante nem borda recheada.
                   A forma de pagamento deve ser cartão de crédito na entrega, em hipótese alguma forneça dados de cartão de crédito durante a interação.
                   Caso a atendente não informe, pergunte o tempo para entrega.
-                  Inicie a conversa com Oi
                   Escreva números sempre por extenso, nunca use dígitos.
-                  Você deve avaliar se a fala do atendente demanda alguma resposta ou não. Se você achar que o atendente ainda não terminou a sua lógica, você deve responder apenas "-", e aguardar a próxima sentença do atendente.
+                  Se o atendente falar algo que não faça sentido para esse contexto, ou se você não entender o que ele quis dizer, você deve responder simplesmente com "Não entendi, desculpa"
+                  Se o atendente falar coisas como "está bom?", "tudo bem", "beleza", "certo", "tudo certo", "aham", e similares, ele está apenas confirmando, você deve responder apenas " ".
+                  Você deve avaliar se a fala do atendente demanda alguma resposta ou não. Se você achar que o atendente ainda não terminou a sua lógica, você deve responder apenas " ", e aguardar a próxima sentença do atendente.
 
                   ### Exemplo ###
                   Atendente: Bem vindo à pizzaria, como posso te ajudar? 
-                  AI: Oi, gostaria de pedir uma pizza.
+                  Pedro: Oi, gostaria de pedir uma pizza.
                   Atendente: Qual é o seu nome? 
-                  AI: Meu nome é Renato.
-                  Atendente: Você já tem cadastro?
-                  AI: Não tenho não
+                  Pedro: Meu nome é Pedro.
                   Atendente: Qual seu telefone? 
-                  Atendente: Qual seu CEP? 
-                  AI: Meu telefone é {number_to_text_phone(PHONE_NUMBER[3:])}
+                  Pedro: Meu telefone é {number_to_text_phone(PHONE_NUMBER[3:])}
                   Atendente: nove, oitenta e oito, sete quatro ...? 
-                  AI: nove, oitenta e oito | sete quatro ... nove dois | quatro dois
+                  Pedro: nove, oitenta e oito | sete quatro ... nove dois | quatro dois
+                  Atendente: Você já tem cadastro?
+                  Pedro: Não tenho não
                   Atendente: Qual seu CEP? 
-                  AI: Meu CEP é {ZIPCODE}
+                  Pedro: Meu CEP é {ZIPCODE}
                   Atendente: Qual vai ser o pedido?
-                  AI: Uma pizza de portuguesa
+                  Pedro: Uma pizza de portuguesa
                   Atendente: Você gostaria de bebida?
-                  AI: Não precisa não
+                  Pedro: Não precisa não
                   Atendente: Ok, ficou 70 reais, qual a forma de pagamento?
-                  AI: Vai ser cartão de crédito na entrada
+                  Pedro: Vai ser cartão de crédito na entrada
                   Atendente: Ok, mais alguma coisa?
-                  AI: Quanto tempo para entregar? 
+                  Pedro: Quanto tempo para entregar? 
                   Atendente: 30 minutos. Posso te ajudar em algo mais?
-                  AI: Não, obrigado
+                  Pedro: Não, obrigado
                   ''',
-                # 'prompt_preamble': "Voce é um professor de história da ciencia especializado em Isaac Netwon. Dê respostas longas e detalhadas de até 20 palavras",
                 'generate_responses':True,
-                'allow_agent_to_be_cut_off':True,
+                # 'allow_agent_to_be_cut_off':True,
                 'model_name':'gpt-3.5-turbo-1106',
                 'temperature':0.2
             }
@@ -323,7 +319,7 @@ async def main():
         transcriberConfig = system_definition['transcriber']['configClass'].from_telephone_input_device(
             endpointing_config=system_definition['transcriber']['endpointing_config'],
             mute_during_speech=True,
-        )        
+        )       
         synthesizerConfig = system_definition['synthesizer']['configClass'].from_telephone_output_device()
         twilio_config = TwilioConfig(
             account_sid=os.getenv("TWILIO_ACCOUNT_SID"),
@@ -341,7 +337,7 @@ async def main():
         )
         transcriberConfig = system_definition['transcriber']['configClass'].from_input_device(
             microphone_input, endpointing_config=system_definition['transcriber']['endpointing_config'],
-            mute_during_speech=True,
+            # mute_during_speech=True,
         )
         synthesizerConfig = system_definition['synthesizer']['configClass'].from_output_device(speaker_output)
 
@@ -353,15 +349,10 @@ async def main():
 
     #running
     if PROD:
+        print(transcriberConfig) 
         outbound_call = OutboundCall(
             base_url=BASE_URL,
-            # to_phone=PHONE_NUMBER,
-            # to_phone= "+551133374019",
-            # to_phone= "+5511991568300",
-            # to_phone= "+5511958931728",
-            # to_phone= "+551131054543",
-            to_phone= "+551123676446",
-            # to_phone= "+5512982252000",
+            to_phone=PHONE_NUMBER,
             # from_phone="+19787572232", #us number
             from_phone="+551150396059" ,#sp number
             config_manager=config_manager,
