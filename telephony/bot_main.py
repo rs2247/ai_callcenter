@@ -21,9 +21,19 @@ from opentelemetry.sdk.resources import Resource
 from collections import defaultdict
 import elevenlabs
 from num2words import num2words
+from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
+from vocode.streaming.models.agent import LlamacppAgentConfig
+from vocode.streaming.agent.llamacpp_agent import LlamacppAgent
+
+
 
 # print("ELEVENLABS FILEPATH")
 # print(elevenlabs.__file__)
+
+# from TTS.api import TTS
+# tts = TTS("tts_models/en/ljspeech/tacotron2-DDC_ph")
+
+
 
 load_dotenv()
 
@@ -44,6 +54,7 @@ if PROD:
 
 
 
+#EXPORT SPANS TO CONSOLE
 # class PrintDurationSpanExporter(SpanExporter):
 #     def __init__(self):
 #         super().__init__()
@@ -59,11 +70,31 @@ if PROD:
 #         for name, durations in self.spans.items():
 #             print(f"{name}: {sum(durations) / len(durations)}")
 
-
+# span_exporter = PrintDurationSpanExporter()
 # trace.set_tracer_provider(TracerProvider(resource=Resource.create({})))
 # trace.get_tracer_provider().add_span_processor(
-#     SimpleSpanProcessor(PrintDurationSpanExporter())
+#     SimpleSpanProcessor(span_exporter)
 # )
+
+#EXPORT SPANS TO JAEGER
+# from opentelemetry.exporter.jaeger.thrift import JaegerExporter
+# from opentelemetry.sdk.resources import SERVICE_NAME, Resource
+# from opentelemetry.sdk.trace import TracerProvider
+# from opentelemetry.sdk.trace.export import BatchSpanProcessor
+# jaeger_exporter = JaegerExporter(
+#    agent_host_name="localhost",
+#    agent_port=6831,
+# )
+# trace.set_tracer_provider(
+#    TracerProvider(
+#        resource=Resource.create({SERVICE_NAME: "my-hello-service"})
+#    )
+# )
+# trace.get_tracer_provider().add_span_processor(
+#    BatchSpanProcessor(jaeger_exporter)
+# )
+# tracer = trace.get_tracer(__name__)
+
 
 
 #necessary?
@@ -85,15 +116,25 @@ def number_to_text_phone(number):
     
     if len(number) == 11: #mobile
         #area code
-        number_text = num2words(number[0:2], lang='pt-br') + ','
+        number_text = "O dê dê dê é " + num2words(number[0:2], lang='pt-br') + ' ... '
         #first digit
-        number_text += num2words(number[2], lang='pt-br') + ','
+        number_text += num2words(number[2], lang='pt-br') + ' | '
         #rest
         for i in range(4):
             digits = number[3+2*i:5+2*i]
             if digits[0]=='0':
                 number_text += 'zero '    
-            number_text += num2words(digits, lang='pt-br') + ','
+            # if i!=3:
+            #     number_text += num2words(digits, lang='pt-br') + ' | '
+            # else:
+            #     number_text += num2words(digits, lang='pt-br')
+            if i in (0,2):
+                number_text += num2words(digits, lang='pt-br') + ' | '
+            elif i == 1:
+                number_text += num2words(digits, lang='pt-br') + ' ... '
+            else:
+                number_text += num2words(digits, lang='pt-br')
+
     elif len(number) == 10: #local
         raise NotImplemented ("Implement number_to_text_phone for local phone numbers")
 
@@ -144,16 +185,79 @@ async def main():
             'configVars':{
                 'model_id': 'eleven_multilingual_v2',
                 # 'model_id': 'eleven_turbo_v2',
-                # 'voice_id':'NGS0ZsC7j4t4dCWbPdgO', -- voice not found
+                'voice_id':'NGS0ZsC7j4t4dCWbPdgO', #Dyego
                 # 'voice_id': 'pNInz6obpgDQGcFmaJgB',
-                'voice_id': '21m00Tcm4TlvDq8ikWAM', #Rachel
+                # 'voice_id': '21m00Tcm4TlvDq8ikWAM', #Rachel
                 # 'voice_id': 'LcfcDJNUP1GQjkzn1xUU', #Emily
                 'api_key':os.getenv("ELEVEN_LABS_API_KEY"),
-                'optimize_streaming_latency': 3,
-                'stability': '0.8',
+                'optimize_streaming_latency': 4,
+                'stability': '1',
                 'similarity_boost': '0.75'
             }
+        # 'synthesizer':{
+        #     'class':CoquiTTSSynthesizer,
+        #     'configClass':CoquiTTSSynthesizerConfig,
+        #     'configVars':{
+        #         # 'language':'pt',
+        #         # 'tts_kwargs':{'model_name':'tts_models/en/ljspeech/tacotron2-DDC_ph'}
+        #         # 'tts_kwargs':{'model_name':'tts_models/multilingual/multi-dataset/your_tts'}
+        #         # 'tts_kwargs':{'model_name':'tts_models/multilingual/multi-dataset/bark'}
+        #         'tts_kwargs':{'model_name':'tts_models/pt/cv/vits'}
+                
+                
+        #     }
+
         },
+        # 'agent': {
+        #     'class':LlamacppAgent,
+        #     'configClass':LlamacppAgentConfig,
+        #     'configVars':{
+        #         'prompt_preamble': f'''
+        #           ### Instrução ###
+        #           Você é um agente responsável por pedir uma pizza pelo telefone. Seja curto e direto ao ponto. 
+        #           Fale de maneira informal, como uma jovem brasileira de 20 anos.
+        #           Se perguntarem o seu nome é Ana.
+        #           Informe que você quer pedir uma pizza apenas no início da conversa. Não repita que quer pedir uma pizza ao menos que seja perguntado.
+        #           Um atendente da pizzaria irá falar com você, você deve esperar pelos inputs dele e oferecer respostas diretas e curtas.
+        #           Você deve solicitar uma pizza pequena de portuguesa.
+        #           Quando for perguntado, informe que é para entregar na {ADDRESS}. 
+        #           Se for perguntado, informe que o Cep é {number_to_text_zipcode(ZIPCODE)}
+        #           Se o atendente pedir para confirmar seu número de telefone, o número é {number_to_text_phone(PHONE_NUMBER[3:])}.
+        #           Se for perguntado, você ainda não tem cadastro na pizzaria.
+        #           Se o atendente perguntar, você não vai querer refrigerante nem borda recheada.
+        #           A forma de pagamento deve ser cartão de crédito na entrega, em hipótese alguma forneça dados de cartão de crédito durante a interação.
+        #           Caso a atendente não informe, pergunte o tempo para entrega.
+        #           Inicie a conversa com Oi
+        #           Escreva números sempre por extenso, nunca use dígitos.
+        #           Se o atendente falar algo que não faça sentido para esse contexto, ou se você não entender o que ele quis dizer, você deve responder simplesmente com "Não entendi direito, você pode repetir???"
+        #           Você deve avaliar se a fala do atendente demanda alguma resposta ou não. Se você achar que o atendente ainda não terminou a sua lógica, você deve responder apenas "-", e aguardar a próxima sentença do atendente.
+
+        #           ### Exemplo ###
+        #           Atendente: Bem vindo à pizzaria, como posso te ajudar? 
+        #           AI: Oi, gostaria de pedir uma pizza.
+        #           Atendente: Qual é o seu nome? 
+        #           AI: Meu nome é Ana.
+        #           Atendente: Você já tem cadastro?
+        #           AI: Não tenho não
+        #           Atendente: Qual seu CEP? 
+        #           AI: Meu CEP é {ZIPCODE}
+        #           Atendente: Qual vai ser o pedido?
+        #           AI: Uma pizza de portuguesa
+        #           Atendente: Você gostaria de bebida?
+        #           AI: Não precisa não
+        #           Atendente: Ok, ficou 70 reais, qual a forma de pagamento?
+        #           AI: Vai ser cartão de crédito na entrada
+        #           Atendente: Ok, mais alguma coisa?
+        #           AI: Quanto tempo para entregar? 
+        #           Atendente: 30 minutos. Posso te ajudar em algo mais?
+        #           AI: Não, obrigado
+        #           ''',
+        #       # 'llamacpp_kwargs':{"model_path": "/Users/sanabria/Downloads/llama-2-7b-chat.Q5_K_M.gguf", "verbose": True, 'n_ctx':2048 },
+        #       'llamacpp_kwargs':{"model_path": "/Users/sanabria/Downloads/llama-2-7b-chat.Q5_K_M.gguf", "verbose": True, 'n_ctx':2048 },
+        #       'prompt_template':'alpaca',
+        #     }
+        # }
+
         'agent':{
             'class':ChatGPTAgent,
             'configClass':ChatGPTAgentConfig,
@@ -163,7 +267,7 @@ async def main():
                   ### Instrução ###
                   Você é um agente responsável por pedir uma pizza pelo telefone. Seja curto e direto ao ponto. 
                   Fale de maneira informal, como uma jovem brasileira de 20 anos.
-                  Se perguntarem o seu nome é Ana.
+                  Se perguntarem o seu nome é Renato.
                   Informe que você quer pedir uma pizza apenas no início da conversa. Não repita que quer pedir uma pizza ao menos que seja perguntado.
                   Um atendente da pizzaria irá falar com você, você deve esperar pelos inputs dele e oferecer respostas diretas e curtas.
                   Você deve solicitar uma pizza pequena de portuguesa.
@@ -176,17 +280,20 @@ async def main():
                   Caso a atendente não informe, pergunte o tempo para entrega.
                   Inicie a conversa com Oi
                   Escreva números sempre por extenso, nunca use dígitos.
-                  Se o atendente falar algo que não faça sentido para esse contexto, ou se você não entender o que ele quis dizer, você deve responder simplesmente com "Não entendi direito, você pode repetir???"
-                  Se o atendente falar coisas como "está bom?", "tudo bem", "beleza", "certo", "tudo certo", "aham", e similares, ele está apenas confirmando, você deve responder apenas "-".
                   Você deve avaliar se a fala do atendente demanda alguma resposta ou não. Se você achar que o atendente ainda não terminou a sua lógica, você deve responder apenas "-", e aguardar a próxima sentença do atendente.
 
                   ### Exemplo ###
                   Atendente: Bem vindo à pizzaria, como posso te ajudar? 
                   AI: Oi, gostaria de pedir uma pizza.
                   Atendente: Qual é o seu nome? 
-                  AI: Meu nome é Ana.
+                  AI: Meu nome é Renato.
                   Atendente: Você já tem cadastro?
                   AI: Não tenho não
+                  Atendente: Qual seu telefone? 
+                  Atendente: Qual seu CEP? 
+                  AI: Meu telefone é {number_to_text_phone(PHONE_NUMBER[3:])}
+                  Atendente: nove, oitenta e oito, sete quatro ...? 
+                  AI: nove, oitenta e oito | sete quatro ... nove dois | quatro dois
                   Atendente: Qual seu CEP? 
                   AI: Meu CEP é {ZIPCODE}
                   Atendente: Qual vai ser o pedido?
@@ -199,14 +306,13 @@ async def main():
                   AI: Quanto tempo para entregar? 
                   Atendente: 30 minutos. Posso te ajudar em algo mais?
                   AI: Não, obrigado
-
                   ''',
+                # 'prompt_preamble': "Voce é um professor de história da ciencia especializado em Isaac Netwon. Dê respostas longas e detalhadas de até 20 palavras",
                 'generate_responses':True,
                 'allow_agent_to_be_cut_off':True,
                 'model_name':'gpt-3.5-turbo-1106',
                 'temperature':0.2
             }
-
         }
     }
 
@@ -249,12 +355,20 @@ async def main():
     if PROD:
         outbound_call = OutboundCall(
             base_url=BASE_URL,
-            to_phone=PHONE_NUMBER,
-            from_phone="+19787572232",
+            # to_phone=PHONE_NUMBER,
+            # to_phone= "+551133374019",
+            # to_phone= "+5511991568300",
+            # to_phone= "+5511958931728",
+            # to_phone= "+551131054543",
+            to_phone= "+551123676446",
+            # to_phone= "+5512982252000",
+            # from_phone="+19787572232", #us number
+            from_phone="+551150396059" ,#sp number
             config_manager=config_manager,
             transcriber_config= transcriberConfig,
             synthesizer_config= synthesizerConfig,
-            agent_config= agentConfig
+            agent_config= agentConfig,
+            twilio_config = twilio_config
             # output_to_speaker=True            
         )
         input("Press enter to start call...")
@@ -280,7 +394,15 @@ async def main():
         )
         while conversation.is_active():
             chunk = await microphone_input.get_audio()
-            conversation.receive_audio(chunk)
+            # with tracer.start_as_current_span("conversation") as conversation_span:
+                # carrier = {}
+                # TraceContextTextMapPropagator().inject(carrier)
+                # conversation.context = trace.set_span_in_context(conversation_span)
+                # print(conversation.context)
+                # conversation.receive_audio(chunk)
+            conversation.receive_audio(chunk)   
+
+        # import pdb; pdb.set_trace()
 
 
 if __name__ == "__main__":
