@@ -160,8 +160,8 @@ async def main():
         'transcriber':{
             'class':DeepgramTranscriber,
             'configClass':DeepgramTranscriberConfig,
-            'endpointing_config':TimeEndpointingConfig(),
-            # 'endpointing_config':PunctuationEndpointingConfig(),
+            # 'endpointing_config':TimeEndpointingConfig(),
+            'endpointing_config':PunctuationEndpointingConfig(),
             'configVars':{
                 'language':"pt-BR",
                 'model':"nova-2"
@@ -171,7 +171,7 @@ async def main():
         #     'class':AzureSynthesizer,
         #     'configClass':AzureSynthesizerConfig,
         #     'configVars':{
-        #         'voice_name': 'pt-BR-DonatoNeural',
+        #         'voice_name': 'pt-BR-AntonioNeural',
         #         'language_code':'pt-BR'
         #     }
         # },
@@ -304,9 +304,9 @@ async def main():
                   Atendente: 30 minutos. Posso te ajudar em algo mais?
                   Pedro: Não, obrigado
                   ''',
-                'generate_responses':True,
+                # 'generate_responses':True,
                 # 'allow_agent_to_be_cut_off':True,
-                'model_name':'gpt-3.5-turbo-1106',
+                # 'model_name':'gpt-3.5-turbo-1106', # o ultimo modelo é um pouco mais devagar
                 'temperature':0.2
             }
         }
@@ -318,7 +318,7 @@ async def main():
         print("Running in prod!")
         transcriberConfig = system_definition['transcriber']['configClass'].from_telephone_input_device(
             endpointing_config=system_definition['transcriber']['endpointing_config'],
-            mute_during_speech=True,
+            # mute_during_speech=True,
         )       
         synthesizerConfig = system_definition['synthesizer']['configClass'].from_telephone_output_device()
         twilio_config = TwilioConfig(
@@ -332,7 +332,7 @@ async def main():
         print("Running locally!")
         microphone_input, speaker_output = create_streaming_microphone_input_and_speaker_output(
             use_default_devices=False,
-            # logger=logger,
+            logger=logger,
             use_blocking_speaker_output=True,  # this moves the playback to a separate thread, set to False to use the main thread
         )
         transcriberConfig = system_definition['transcriber']['configClass'].from_input_device(
@@ -375,8 +375,8 @@ async def main():
                 synthesizerConfig,
                 logger=logger
             ),
-            agent=system_definition['agent']['class'](agentConfig),
-            logger=logger,
+            agent=system_definition['agent']['class'](agentConfig, logger=logger),
+            logger=logger
         )
         await conversation.start()
         print("Conversation started, press Ctrl+C to end")
