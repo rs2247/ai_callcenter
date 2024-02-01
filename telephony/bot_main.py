@@ -298,7 +298,7 @@ async def main():
                   Atendente: Você gostaria de bebida?
                   Pedro: Não precisa não
                   Atendente: Ok, ficou 70 reais, qual a forma de pagamento?
-                  Pedro: Vai ser cartão de crédito na entrada
+                  Pedro: Vai ser cartão de crédito na entrega
                   Atendente: Ok, mais alguma coisa?
                   Pedro: Quanto tempo para entregar? 
                   Atendente: 30 minutos. Posso te ajudar em algo mais?
