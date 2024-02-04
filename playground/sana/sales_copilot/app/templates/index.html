@@ -42,7 +42,7 @@
 		}
 
 		th, td {
-		    padding: 10px;
+		    padding: 3px;
 		    text-align: left;
 		    border-bottom: 1px solid #ddd;
 		}
@@ -58,9 +58,60 @@
 	<div class="divider"></div>
 
     <div class="right">
-    	<h1>Co-pilot output</h1>
+    	<h1 style="margin-bottom: 40px;">Co-pilot output</h1>
+	   	<!-- <p>{{salesperson_performance}}</p>  -->
+	   	{% for dimension, dimension_data in salesperson_performance.items() %}
+			
+	   		{% if loop.first %}	    
+				<h2 style="margin-top: 20px;">{{dimension}}</h2>
+			{% else %}	    				
+				<h2 style="margin-top: 20px; border-top:1px solid #c2c2c2;padding-top:10px">{{dimension}}</h2>
+			{% endif %}	    				
+
+			{% for question, question_data in dimension_data.items() %}
+			<table>
+		        <thead>
+		            <tr>
+		                <th style="width: 23px; text-align: center; padding: 0; box-sizing: border-box; border: none;"></th> 
+		                <th style="padding: 0; box-sizing: border-box; border: none;"></th> 
+		            </tr>
+		        </thead>
+			    
+			    <tbody>
+				    {% if question_data['resposta'] == 'Sim' %}	    
+				    <tr>
+		                <td style="text-align: center; padding: 0; box-sizing: border-box; border: none;">
+							<div style="width: 15px; height: 15px; margin: 2px; background-color: rgb(0, 199, 71); border: 1px solid black; border-radius: 50%;"></div>
+		                </td>
+		                <td style="padding: 3px; box-sizing: border-box; border: none;font-size:large"> {{question}} </td>
+			        </tr>
+				    <tr>
+				        <td style="box-sizing: border-box; border: none;"></td>
+				        <td style="color:#848484;box-sizing: border-box; border: none;">"{{ question_data['trechos'] |replace(';', '"<br><br>"') | safe }}"</td>
+				    </tr>
+
+					{% else %}            	
+				    <tr>
+		                <td style="text-align: center; padding: 0; box-sizing: border-box; border: none;">
+							<div style="width: 15px; height: 15px; margin: 2px; background-color: red; border: 1px solid black; border-radius: 50%;"></div>
+		                </td>
+		                <td style="padding: 3px; box-sizing: border-box; border: none;font-size:large"> {{question}} </td>
+			        </tr>
+
+				 	{% endif %}
+
+			    </tbody>
+			</table>
+
+			{% endfor %}
+		{% endfor %}
+    </div>
+</body>
+</html>
+
+<!-- 
+
 	   	<h2 style="margin-top: 30px;">Customer insights</h2>
-	   	<!-- <p>{{customer_insights}}</p>  -->
 		<table>
 		    <tbody>
 				{% for key, value in customer_insights.items() %}
@@ -71,53 +122,4 @@
 				{% endfor %}
 		    </tbody>
 		</table>
-
-	   	<h2 style="margin-top: 40px;">Aderência ao script de vendas</h2>
-	   	<!-- <p>{{salesperson_performance}}</p>  -->
-		<table>
-	        <thead>
-	            <tr>
-	                <th style="width: 10%;">Dimensões</th>
-	                <th style="width: 10%;">Seguiu o script?</th>
-	                <th style="width: 40%;">Detalhamento</th>
-	                <th style="width: 40%;">Trechos da transcrição</th>
-	            </tr>
-	        </thead>
-		    <tbody>
-				{% for dimension, data in salesperson_performance.items() %}
-				    <tr>
-				        <td>{{ dimension }}</td>
-	                    {% for sub_dimension, answer in data.items() %}
-	                        {% if sub_dimension == 'trechos' %}
-	                        <td> 
-	                        	"{{ answer |replace(';', '"<br><br>"') | safe }}"
-	                            <!-- {{ answer }} -->
-	                        </td>
-	                        {% elif sub_dimension == 'resposta' %}
-	                        <td style="text-align: center;">
-
-
-	                        	{% if answer == 'Sim' %}
-	                                &#10004; <!-- Checkmark symbol -->
-	                            {% elif answer == 'Não' %}
-	                                &#10008; <!-- Cross symbol -->
-                                {% endif %}
-	                        </td>
-                        	{% else %}
-	                        <td> 
-                                {{ answer }}
-	                    	</td>
-                            {% endif %}
-
-
-	                    {% endfor %}
-				        
-				    </tr>
-				{% endfor %}
-		    </tbody>
-		</table>
-
-
-    </div>
-</body>
-</html>
+ -->
