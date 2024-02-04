@@ -47,6 +47,18 @@
 		    border-bottom: 1px solid #ddd;
 		}
 
+	    .tab {
+	        background-color: #f1f1f1;
+	        border: 1px solid #ccc;
+	        border-radius:10px;
+	        padding: 10px;
+	        cursor: pointer;
+	    }
+
+	    .tab.active {
+	        background-color: #ddd; /* Change the background color for the active tab */
+	    }		
+
     </style>
     <title>Split Screen Vertically</title>
 </head>
@@ -59,67 +71,103 @@
 
     <div class="right">
     	<h1 style="margin-bottom: 40px;">Co-pilot output</h1>
-	   	<!-- <p>{{salesperson_performance}}</p>  -->
-	   	{% for dimension, dimension_data in salesperson_performance.items() %}
-			
-	   		{% if loop.first %}	    
-				<h2 style="margin-top: 20px;">{{dimension}}</h2>
-			{% else %}	    				
-				<h2 style="margin-top: 20px; border-top:1px solid #c2c2c2;padding-top:10px">{{dimension}}</h2>
-			{% endif %}	    				
 
-			{% for question, question_data in dimension_data.items() %}
-			<table>
-		        <thead>
-		            <tr>
-		                <th style="width: 23px; text-align: center; padding: 0; box-sizing: border-box; border: none;"></th> 
-		                <th style="padding: 0; box-sizing: border-box; border: none;"></th> 
-		            </tr>
-		        </thead>
-			    
+	    <div class="tabs">
+	        <button class="tab" onclick="showTab('sellerAnalysis')" id="sellerAnalysisTab" style="font-size:medium">Seller insights</button>
+	        <button class="tab" onclick="showTab('customerAnalysis')" id="customerAnalysisTab" style="font-size:medium">Customer insights</button>
+	    </div>
+
+	    <!-- Content for seller and customer analysis -->
+	    <div id="sellerAnalysis" class="tabContent">
+	    	{% for dimension, dimension_data in salesperson_performance.items() %}
+				
+		   		{% if loop.first %}	    
+					<h2 style="margin-top: 20px;">{{dimension}}</h2>
+				{% else %}	    				
+					<h2 style="margin-top: 20px; border-top:1px solid #c2c2c2;padding-top:10px">{{dimension}}</h2>
+				{% endif %}	    				
+
+				{% for question, question_data in dimension_data.items() %}
+				<table>
+			        <thead>
+			            <tr>
+			                <th style="width: 23px; text-align: center; padding: 0; box-sizing: border-box; border: none;"></th> 
+			                <th style="padding: 0; box-sizing: border-box; border: none;"></th> 
+			            </tr>
+			        </thead>
+				    
+				    <tbody>
+					    {% if question_data['resposta'] == 'Sim' %}	    
+					    <tr>
+			                <td style="text-align: center; padding: 0; box-sizing: border-box; border: none;">
+								<div style="width: 15px; height: 15px; margin: 2px; background-color: rgb(0, 199, 71); border: 1px solid black; border-radius: 50%;"></div>
+			                </td>
+			                <td style="padding: 3px; box-sizing: border-box; border: none;font-size:large"> {{question}} </td>
+				        </tr>
+					    <tr>
+					        <td style="box-sizing: border-box; border: none;"></td>
+					        <td style="color:#848484;box-sizing: border-box; border: none;">"{{ question_data['trechos'] |replace(';', '"<br><br>"') | safe }}"</td>
+					    </tr>
+
+						{% else %}            	
+					    <tr>
+			                <td style="text-align: center; padding: 0; box-sizing: border-box; border: none;">
+								<div style="width: 15px; height: 15px; margin: 2px; background-color: red; border: 1px solid black; border-radius: 50%;"></div>
+			                </td>
+			                <td style="padding: 3px; box-sizing: border-box; border: none;font-size:large"> {{question}} </td>
+				        </tr>
+
+					 	{% endif %}
+
+				    </tbody>
+				</table>
+
+				{% endfor %}
+			{% endfor %}
+
+	        
+	    </div>
+
+	    <div id="customerAnalysis" class="tabContent" style="display: none;">
+		   	<table>
 			    <tbody>
-				    {% if question_data['resposta'] == 'Sim' %}	    
-				    <tr>
-		                <td style="text-align: center; padding: 0; box-sizing: border-box; border: none;">
-							<div style="width: 15px; height: 15px; margin: 2px; background-color: rgb(0, 199, 71); border: 1px solid black; border-radius: 50%;"></div>
-		                </td>
-		                <td style="padding: 3px; box-sizing: border-box; border: none;font-size:large"> {{question}} </td>
-			        </tr>
-				    <tr>
-				        <td style="box-sizing: border-box; border: none;"></td>
-				        <td style="color:#848484;box-sizing: border-box; border: none;">"{{ question_data['trechos'] |replace(';', '"<br><br>"') | safe }}"</td>
-				    </tr>
-
-					{% else %}            	
-				    <tr>
-		                <td style="text-align: center; padding: 0; box-sizing: border-box; border: none;">
-							<div style="width: 15px; height: 15px; margin: 2px; background-color: red; border: 1px solid black; border-radius: 50%;"></div>
-		                </td>
-		                <td style="padding: 3px; box-sizing: border-box; border: none;font-size:large"> {{question}} </td>
-			        </tr>
-
-				 	{% endif %}
-
+					{% for key, value in customer_insights.items() %}
+					    <tr>
+					        <td>{{ key }}</td>
+					        <td>{{ value |replace(';', '<br>') | safe}}</td>
+					    </tr>
+					{% endfor %}
 			    </tbody>
 			</table>
+	    </div>
 
-			{% endfor %}
-		{% endfor %}
     </div>
+
+
+	<script>
+	    function showTab(tabName) {
+	        // Hide all tabs
+	        var tabs = document.getElementsByClassName("tabContent");
+	        for (var i = 0; i < tabs.length; i++) {
+	            tabs[i].style.display = "none";
+	        }
+
+	        // Remove the 'active' class from all tabs
+	        var tabButtons = document.getElementsByClassName("tab");
+	        for (var i = 0; i < tabButtons.length; i++) {
+	            tabButtons[i].classList.remove("active");
+	        }
+
+	        // Show the selected tab
+	        document.getElementById(tabName).style.display = "block";
+
+	        // Add the 'active' class to the clicked tab button
+	        document.getElementById(tabName + "Tab").classList.add("active");
+		    }
+	</script>
+
+
+
 </body>
 </html>
 
-<!-- 
-
-	   	<h2 style="margin-top: 30px;">Customer insights</h2>
-		<table>
-		    <tbody>
-				{% for key, value in customer_insights.items() %}
-				    <tr>
-				        <td>{{ key }}</td>
-				        <td>{{ value |replace(';', '<br>') | safe}}</td>
-				    </tr>
-				{% endfor %}
-		    </tbody>
-		</table>
- -->
