@@ -1,0 +1,123 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+		body {
+		    display: flex;
+		    height: 100vh;
+		    margin: 0;
+    		font-family: Arial, sans-serif;
+    		background-color: #f0f0f0;
+    		padding: 0;           
+		}
+		.left,
+		.right {
+		    flex: 1;
+		    padding: 20px;
+		    margin-left: 5px; /* Add margin between left and right halves */		    
+		}
+
+		.divider {
+        width: 5px;
+        background-color: #ccc;
+        height: 100vh; /* Make the divider span the full height of the viewport */
+        margin: 0 auto; /* Center the divider horizontally */
+        position: fixed; /* Fix the position of the divider */
+        top: 0;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);	 
+		}
+
+		table {
+		    width: 100%;
+		    border-collapse: collapse;
+		    margin-top: 20px;
+            margin-left: 10px; /* Add left margin to the table */
+
+		}
+
+		th, td {
+		    padding: 10px;
+		    text-align: left;
+		    border-bottom: 1px solid #ddd;
+		}
+
+    </style>
+    <title>Split Screen Vertically</title>
+</head>
+<body>
+    <div class="left">
+    	<h1>Transcrição da reunião</h1>
+    	<small>{{transcript | safe}}</small>
+	</div> 
+	<div class="divider"></div>
+
+    <div class="right">
+    	<h1>Co-pilot output</h1>
+	   	<h2 style="margin-top: 30px;">Customer insights</h2>
+	   	<!-- <p>{{customer_insights}}</p>  -->
+		<table>
+		    <tbody>
+				{% for key, value in customer_insights.items() %}
+				    <tr>
+				        <td>{{ key }}</td>
+				        <td>{{ value |replace(';', '<br>') | safe}}</td>
+				    </tr>
+				{% endfor %}
+		    </tbody>
+		</table>
+
+	   	<h2 style="margin-top: 40px;">Aderência ao script de vendas</h2>
+	   	<!-- <p>{{salesperson_performance}}</p>  -->
+		<table>
+	        <thead>
+	            <tr>
+	                <th style="width: 10%;">Dimensões</th>
+	                <th style="width: 10%;">Seguiu o script?</th>
+	                <th style="width: 40%;">Detalhamento</th>
+	                <th style="width: 40%;">Trechos da transcrição</th>
+	            </tr>
+	        </thead>
+		    <tbody>
+				{% for dimension, data in salesperson_performance.items() %}
+				    <tr>
+				        <td>{{ dimension }}</td>
+	                    {% for sub_dimension, answer in data.items() %}
+	                        {% if sub_dimension == 'trechos' %}
+	                        <td> 
+	                        	"{{ answer |replace(';', '"<br><br>"') | safe }}"
+	                            <!-- {{ answer }} -->
+	                        </td>
+	                        {% elif sub_dimension == 'resposta' %}
+	                        <td style="text-align: center;">
+
+
+	                        	{% if answer == 'Sim' %}
+	                                &#10004; <!-- Checkmark symbol -->
+	                            {% elif answer == 'Não' %}
+	                                &#10008; <!-- Cross symbol -->
+                                {% endif %}
+	                        </td>
+                        	{% else %}
+	                        <td> 
+                                {{ answer }}
+	                    	</td>
+                            {% endif %}
+
+
+	                    {% endfor %}
+				        
+				    </tr>
+				{% endfor %}
+		    </tbody>
+		</table>
+
+
+    </div>
+</body>
+</html>
