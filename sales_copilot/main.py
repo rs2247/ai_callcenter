@@ -64,7 +64,7 @@ async def deepgram_trancribe(audio_filepath,transcript_filepath):
     )
 
     # Write the response to the console
-    print(json.dumps(response, indent=4))    
+    # print(json.dumps(response, indent=4))    
     
     # filename_no_extension = os.path.splitext(os.path.basename(audio_filepath))[0]
     # directory_path = os.path.dirname(audio_filepath)
@@ -90,24 +90,24 @@ async def deepgram_trancribe(audio_filepath,transcript_filepath):
         json_file.write(response['results']['paragraphs']['transcript'])
 
 
-async def run_transcription(calls_directory):
+async def run_transcription(calls_directory, transcripts_directory):
     audio_filename_list = [file for file in os.listdir(calls_directory) if file.endswith('.wav')]
     
     for audio_filename in audio_filename_list:
-    
+        
+
         audio_filepath = calls_directory + '/' + audio_filename        
-        transcript_filepath = calls_directory  + '/transcripts/' + audio_filename.replace('wav','txt')
+        transcript_filepath = transcripts_directory + '/' + audio_filename.replace('wav','txt')
         
         print(audio_filepath, '\n',transcript_filepath)
-        print('\n')
-
         await deepgram_trancribe(audio_filepath,transcript_filepath)
+        print('\n')
 
 
 
 async def main():
     
-    await run_transcription(os.getcwd() + '/calls')
+    await run_transcription(os.getcwd() + '/calls', os.getcwd() + '/transcripts')
     # filename = current_folder+'/calls/caio_fernanda.wav'
     # await run_deepgram(filename)
 
