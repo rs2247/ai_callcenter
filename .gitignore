@@ -2,3 +2,5 @@
 .env
 .vscode
 ai_callcenter
+.wav
+.txt
