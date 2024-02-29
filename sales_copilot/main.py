@@ -20,9 +20,9 @@ def load_transcript(transcript_filepath):
         transcript = file.read()
     return transcript
 
-def extract_feature(transcript):
+def extract_feature_alta_empregabilidade(transcript):
     completion = client.chat.completions.create(
-        model="gpt-3.5-turbo-1106",
+        model="gpt-3.5-turbo-0125",
         # model="gpt-4-turbo-preview",
         messages=[{
             "role": "system", 
@@ -51,8 +51,10 @@ def extract_feature(transcript):
               Avalie se esse trecho explicitamente cita que a empregabilidade dos alunos da DNC depois de formados é alta, por exemplo citando os noventa e oito porcento de taxa de empregabilidade
 
               #### FORMATO DESEJADO ####
-              alta_empregabilidade: <sim/não>
-              trecho: <se a resposta for sim, traga um trecho da transcrição que mencione a alta taxa de empregabilidade>
+              {{
+                alta_empregabilidade: <sim/não>
+                trecho: <se a resposta for sim, traga um trecho da transcrição que mencione a alta taxa de empregabilidade>
+              }}  
 
               #### EXEMPLOS SIM ####
               "tanto que a dnc tem a maior taxa de empregabilidade do Brasil" 
@@ -69,21 +71,6 @@ def extract_feature(transcript):
         temperature=0.2
     )
     return completion.choices[0].message.content
-
-              # Uma dos argumentos mais convicentes da DNC é a alta taxa de empregabilidade dos seus alunos depois de formados.
-              # Responda se o vendedor, na transcrição fornecida, falou para o aluno explicitamente sobre a alta empregabilidade dos alunos da DNC depois de formados. 
-              # Responda com Sim/Não e em caso de Sim, retorne o trecho desta transcrição em espcecífico em que ele comenta sobre a empregabilidade.
-              
-              # Alguns exemplos de trechos que dizem explicitamente sobre essa alta taxa de empregabilidade e seriam Sim como resposta:
-              # - "tanto que a dnc tem a maior taxa de empregabilidade do Brasil" 
-              # -  "...tanto que nossa taxa de empregabilidade hoje depois da formação em até três meses é de noventa e oito vírgula cinco por cento. Ricardo por isso que a gente promete a devolução do dinheiro porque a gente sabe que é bom nisso, empregabilidade."
-              # - "Hoje a nossa taxa é de noventa e oito vírgula sete, que significa isso? A cada cem alunos que a gente matricula, noventa e oito conseguem emprego, consegue atingir seu objetivo, seja de cargo, seja de salário, ou seja ele de faixa aí, em até seis meses após a formação."
-              # - "a maior empregabilidade aqui do Brasil"
-
-              # Não basta falar sobre empregabilidade no geral, tem que falar explicitamente do alto número de alunos que consegue emprego depois de formados na DNC.
-              # Não basta falar que a escola foca no mercado de trabalho, fornece suporte para os alunos na parte de estudo, mentoria de carreira, simulações de entrevistas e sugerir implicitamente que a taxa de empregabilidade é alta. Ele precisa citar explicitamente que a empregabilidade dos alunos é alta.
-              # Alguns exemplos de trechos que não dizem explicitamente sobre empregabilidade e seriam Não como resposta:
-              # - "a parte de dados, é que a gente possui programa de carreira certa, aí tem a mentoria de carreira, onde a gente vai te guiar no mercado de trabalho até a área de dados, com consultoria né a gente vai te ajudar a entrar no processo seletivo aí avançando no processo seletivo, assim como a gente vai te ajudar a otimizar o seu currículo coisa pra educação"
 
 
 async def deepgram_trancribe(audio_filepath,transcript_filepath):
@@ -189,7 +176,7 @@ async def main():
         transcript = load_transcript(os.getcwd() + '/transcripts/' + transcript_filename)
         
         print(transcript_filename)
-        feature = extract_feature(transcript)
+        feature = extract_feature_alta_empregabilidade(transcript)
         print(feature)
         print("\n\n")
 
