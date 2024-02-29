@@ -15,8 +15,78 @@ client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
 DEEPGRAM_API_KEY = os.environ["DEEPGRAM_API_KEY"]
 
 
+def load_transcript(transcript_filepath):
+    with open(transcript_filepath, 'r') as file:
+        transcript = file.read()
+    return transcript
+
+def extract_feature(transcript):
+    completion = client.chat.completions.create(
+        model="gpt-3.5-turbo-1106",
+        # model="gpt-4-turbo-preview",
+        messages=[{
+            "role": "system", 
+            "content": f'''
+              Você é um agente de qualidade de um time de vendas da Escola DNC. Seu papel é analisar a transcrição abaixo de uma conversas
+              entre um vendedor e um cliente e identificar se ele está agindo da forma como é esperado. 
+              Se está dizendo o pitch de vendas corretamente, criando rapport com os clientes, etc
+              Para contexto, a Escola DNC vende cursos online de dados, marketing, projetos, dentre outros. 
+
+              #### TRANSCRIÇÃO ####
+              {transcript}
+
+            '''
+        },
+        {
+            "role": "user", 
+            "content": f'''
+
+              #### INSTRUÇÃO ####
+              Cheque se na transcrição acima é mencionado explicitamente sobre a alta taxa de empregabilidade dos alunos da DNC depois de formados.
+              
+              #### PASSO 1 ####
+              Verifique se existe um trecho que menciona explicitamente a alta taxa de empregabilidade
+
+              #### PASSO 2 ####
+              Avalie se esse trecho explicitamente cita que a empregabilidade dos alunos da DNC depois de formados é alta, por exemplo citando os noventa e oito porcento de taxa de empregabilidade
+
+              #### FORMATO DESEJADO ####
+              alta_empregabilidade: <sim/não>
+              trecho: <se a resposta for sim, traga um trecho da transcrição que mencione a alta taxa de empregabilidade>
+
+              #### EXEMPLOS SIM ####
+              "tanto que a dnc tem a maior taxa de empregabilidade do Brasil" 
+              "...tanto que nossa taxa de empregabilidade hoje depois da formação em até três meses é de noventa e oito vírgula cinco por cento. Ricardo por isso que a gente promete a devolução do dinheiro porque a gente sabe que é bom nisso, empregabilidade."
+              "Hoje a nossa taxa é de noventa e oito vírgula sete, que significa isso? A cada cem alunos que a gente matricula, noventa e oito conseguem emprego, consegue atingir seu objetivo, seja de cargo, seja de salário, ou seja ele de faixa aí, em até seis meses após a formação."
+              "a maior empregabilidade aqui do Brasil"
+
+              #### EXEMPLOS NÃO ####
+              "a parte de dados, é que a gente possui programa de carreira certa, aí tem a mentoria de carreira, onde a gente vai te guiar no mercado de trabalho até a área de dados, com consultoria né a gente vai te ajudar a entrar no processo seletivo aí avançando no processo seletivo, assim como a gente vai te ajudar a otimizar o seu currículo coisa pra educação"
+              "por por conta que a gente tem acesso a aulas gravadas, que você vai ter flexibilidade naquilo que você precisa, no seu tempo, você independente disso, você vai ter certificados vitalícios, reconhecidos pelo MEC, a gente vai ser vai te dar mentoria, tem aulas ao vivo, tem com alunos, e dentre os projetos que você pode fazer com empresas reais, sabe, a Ifood, PicPay, Ambev, Azul, trabalham com a gente."
+              "faz conclui o passo do curso, aí você libera o embutido, que se você não tiver formado em até seis meses, a gente devolve todo o dinheiro do curso que você investiu."
+            '''
+        }],
+        temperature=0.2
+    )
+    return completion.choices[0].message.content
+
+              # Uma dos argumentos mais convicentes da DNC é a alta taxa de empregabilidade dos seus alunos depois de formados.
+              # Responda se o vendedor, na transcrição fornecida, falou para o aluno explicitamente sobre a alta empregabilidade dos alunos da DNC depois de formados. 
+              # Responda com Sim/Não e em caso de Sim, retorne o trecho desta transcrição em espcecífico em que ele comenta sobre a empregabilidade.
+              
+              # Alguns exemplos de trechos que dizem explicitamente sobre essa alta taxa de empregabilidade e seriam Sim como resposta:
+              # - "tanto que a dnc tem a maior taxa de empregabilidade do Brasil" 
+              # -  "...tanto que nossa taxa de empregabilidade hoje depois da formação em até três meses é de noventa e oito vírgula cinco por cento. Ricardo por isso que a gente promete a devolução do dinheiro porque a gente sabe que é bom nisso, empregabilidade."
+              # - "Hoje a nossa taxa é de noventa e oito vírgula sete, que significa isso? A cada cem alunos que a gente matricula, noventa e oito conseguem emprego, consegue atingir seu objetivo, seja de cargo, seja de salário, ou seja ele de faixa aí, em até seis meses após a formação."
+              # - "a maior empregabilidade aqui do Brasil"
+
+              # Não basta falar sobre empregabilidade no geral, tem que falar explicitamente do alto número de alunos que consegue emprego depois de formados na DNC.
+              # Não basta falar que a escola foca no mercado de trabalho, fornece suporte para os alunos na parte de estudo, mentoria de carreira, simulações de entrevistas e sugerir implicitamente que a taxa de empregabilidade é alta. Ele precisa citar explicitamente que a empregabilidade dos alunos é alta.
+              # Alguns exemplos de trechos que não dizem explicitamente sobre empregabilidade e seriam Não como resposta:
+              # - "a parte de dados, é que a gente possui programa de carreira certa, aí tem a mentoria de carreira, onde a gente vai te guiar no mercado de trabalho até a área de dados, com consultoria né a gente vai te ajudar a entrar no processo seletivo aí avançando no processo seletivo, assim como a gente vai te ajudar a otimizar o seu currículo coisa pra educação"
+
+
 async def deepgram_trancribe(audio_filepath,transcript_filepath):
-    print("AUDIO FILENAME", audio_filepath)
 
     #DEEPGRAM V3
     # config = DeepgramClientOptions(
@@ -95,19 +165,34 @@ async def run_transcription(calls_directory, transcripts_directory):
     
     for audio_filename in audio_filename_list:
         
+        if audio_filename in ['athos_anderson.wav','athos_lorenzo.wav','caio_fernanda.wav','caio_gabriela.wav','ellen_fernando.wav','ellen_wallance.wav','josueh_gabriel.wav','lauraoliveira_marcemilio.wav','lucaspena_joao.wav']:
+            continue
+
 
         audio_filepath = calls_directory + '/' + audio_filename        
         transcript_filepath = transcripts_directory + '/' + audio_filename.replace('wav','txt')
         
-        print(audio_filepath, '\n',transcript_filepath)
         await deepgram_trancribe(audio_filepath,transcript_filepath)
-        print('\n')
-
+        
 
 
 async def main():
     
-    await run_transcription(os.getcwd() + '/calls', os.getcwd() + '/transcripts')
+    #TRANSCRIPTION
+    # await run_transcription(os.getcwd() + '/calls', os.getcwd() + '/transcripts')
+    
+    #EXTRACTING FEATURES
+    # transcript = load_transcript(os.getcwd() + '/transcripts/josueh_alexei.txt')
+    # transcript = load_transcript(os.getcwd() + '/transcripts/josueh_adeilson.txt')
+    transcript_filename_list = [file for file in os.listdir(os.getcwd() + '/transcripts') if file.endswith('.txt')]
+    for transcript_filename in transcript_filename_list:
+        transcript = load_transcript(os.getcwd() + '/transcripts/' + transcript_filename)
+        
+        print(transcript_filename)
+        feature = extract_feature(transcript)
+        print(feature)
+        print("\n\n")
+
     # filename = current_folder+'/calls/caio_fernanda.wav'
     # await run_deepgram(filename)
 
